@@ -1,0 +1,179 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Typography, Row, Col, Space, Card, Progress, Divider } from 'antd';
+import { motion } from 'framer-motion';
+import dayjs from 'dayjs';
+
+// Assets & Stores
+import { useAuthStore } from '@/stores/auth.store';
+import { dmsTheme } from '@/styles/dms.theme'; 
+import { AiOutlineDatabase, AiOutlineCloudServer } from 'react-icons/ai';
+import { VscPulse } from "react-icons/vsc";
+import { 
+  HiOutlineCpuChip, HiOutlineSquare3Stack3D, 
+  HiOutlineRocketLaunch, HiOutlineFolderOpen 
+} from "react-icons/hi2"; 
+
+// Components & Styles
+import { s, globalAnimations } from './HomeSection.styles';
+import { SystemMonitor } from '../SystemMonitor/SystemMonitor'; 
+
+const { Title, Text } = Typography;
+
+// --- INTERFACE ---
+interface HomeSectionProps {
+  stats: any; 
+  sysInfo?: any;
+}
+
+// --- SUB-COMPONENT: LOG LINE ---
+const LogLine = ({ text, type, delay }: { text: string; type: 'success' | 'info' | 'trace'; delay: number }) => {
+  const colors = { 
+    success: dmsTheme.colors.status.success, 
+    info: dmsTheme.colors.status.info, 
+    trace: dmsTheme.colors.text.secondary 
+  };
+  return (
+    <motion.div 
+      initial={{ opacity: 0, x: -5 }} 
+      animate={{ opacity: 1, x: 0 }} 
+      transition={{ delay }} 
+      style={{ marginBottom: '4px', display: 'flex', gap: '12px', alignItems: 'baseline' }}
+    >
+      <span style={{ color: colors[type], fontSize: '10px', fontFamily: dmsTheme.fonts.code, fontWeight: 800 }}>
+        [{type.toUpperCase()}]
+      </span>
+      <span style={{ color: '#E2E8F0', fontSize: '11px', fontFamily: dmsTheme.fonts.code, opacity: 0.9 }}>
+        {text}
+      </span>
+    </motion.div>
+  );
+};
+
+export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, sysInfo }) => {
+  const { user } = useAuthStore();
+  const [currentTime, setCurrentTime] = useState(dayjs());
+  const [liveStats, setLiveStats] = useState(initialStats);
+
+  const fetchLatestStats = useCallback(async () => {
+    try {
+      const freshData = await (window as any).api.getDashboardStats();
+      setLiveStats(freshData);
+    } catch (error) { 
+      console.error("Sync Error:", error); 
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(dayjs()), 1000);
+    const removeListener = (window as any).api.on('data-refresh-trigger', fetchLatestStats);
+    return () => { 
+      clearInterval(timer); 
+      if (removeListener) removeListener(); 
+    };
+  }, [fetchLatestStats]);
+
+  useEffect(() => { 
+    setLiveStats(initialStats); 
+  }, [initialStats]);
+
+  const displayStats = {
+    laporan: liveStats?.totalLaporan ?? 0,
+    foto: liveStats?.totalFoto ?? 0,
+    album: liveStats?.totalAlbum ?? 0
+  };
+
+  const cards = [
+    { label: 'Total Projects', value: displayStats.laporan, icon: <HiOutlineFolderOpen />, color: dmsTheme.colors.status.info, sub: 'Verified Records' },
+    { label: 'Storage Assets', value: displayStats.foto, icon: <AiOutlineDatabase />, color: dmsTheme.colors.status.success, sub: `${displayStats.album} Albums Indexed` },
+    { label: 'Processor', value: sysInfo?.cpu?.split('@')[0] || 'Core Node', icon: <HiOutlineCpuChip />, color: '#6366f1', sub: sysInfo?.arch || 'x64 Architecture' },
+    { label: 'Platform', value: sysInfo?.platform?.toUpperCase() || 'STABLE', icon: <HiOutlineRocketLaunch />, color: dmsTheme.colors.accent, sub: `Build ${sysInfo?.version || 'Stable'}` },
+    { label: 'Memory Pool', value: sysInfo?.totalMemory || '16GB', icon: <HiOutlineSquare3Stack3D />, color: '#ec4899', sub: 'Optimized Cache' },
+    { label: 'Data Latency', value: '0.02ms', icon: <AiOutlineCloudServer />, color: '#14b8a6', sub: 'Stable Link' },
+  ];
+
+  return (
+    <div style={{ padding: '12px 0' }}>
+      <style>{globalAnimations}</style>
+      {/* --- 2. DYNAMIC SYSTEM MONITOR SECTION (NOW ON TOP) --- */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ marginBottom: '24px' }}
+      >
+        <SystemMonitor />
+      </motion.div>
+
+      {/* --- 3. STATS GRID SECTION --- */}
+      <Row gutter={[20, 20]} style={{ marginBottom: '24px' }}>
+        {cards.map((item, idx) => (
+          <Col xs={24} sm={12} lg={8} key={idx}>
+            <motion.div 
+              whileHover={{ y: -4 }} 
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.2 + (idx * 0.1) }}
+            >
+              <Card style={{ ...s.cleanCard, border: `1px solid ${dmsTheme.colors.border}` }} bordered={false}>
+                <Row align="middle" gutter={16}>
+                  <Col flex="auto">
+                    <Text style={s.cardLabel}>{item.label.toUpperCase()}</Text>
+                    <motion.div key={item.value} initial={{ scale: 1.1 }} animate={{ scale: 1 }} style={s.cardValue}>
+                      {item.value}
+                    </motion.div>
+                    <Space size={6} style={{ marginTop: 4 }}>
+                      <VscPulse style={{ color: item.color }} />
+                      <Text style={s.cardSub}>{item.sub}</Text>
+                    </Space>
+                  </Col>
+                  <Col>
+                    <div style={{ ...s.iconCircle, color: item.color, background: `${item.color}12` }}>
+                      {item.icon}
+                    </div>
+                  </Col>
+                </Row>
+                <Progress 
+                  percent={75 + (idx * 2)} 
+                  showInfo={false} 
+                  strokeColor={item.color} 
+                  strokeWidth={3} 
+                  style={{ marginTop: 16 }} 
+                />
+              </Card>
+            </motion.div>
+          </Col>
+        ))}
+      </Row>
+
+      {/* --- 4. TERMINAL DIAGNOSTICS SECTION --- */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8 }}
+        style={{ ...s.terminalWrapper, background: '#00162E', borderColor: dmsTheme.colors.primary }}
+      >
+        <div style={{ ...s.terminalHeader, background: dmsTheme.colors.primary }}>
+          <div style={{ display: 'flex', gap: '6px', marginRight: '16px' }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff5f56' }} />
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ffbd2e' }} />
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#27c93f' }} />
+          </div>
+          <Text style={{ color: '#fff', fontSize: '9px', fontWeight: 800, fontFamily: dmsTheme.fonts.code }}>
+            SYSTEM_DIAGNOSTICS.LOG
+          </Text>
+        </div>
+        <div style={s.terminalContent}>
+          <LogLine type="success" text={`Authenticated as: ${user?.username}`} delay={0.9} />
+          <LogLine type="info" text={`Storage link established: ${displayStats.laporan} records verified.`} delay={1.0} />
+          <LogLine type="trace" text={`Hardware_Pool: ${sysInfo?.cpu || 'Detecting...'}`} delay={1.1} />
+          <LogLine type="trace" text={`Platform_Registry: ${sysInfo?.platform || 'NodeJS'} | ${sysInfo?.arch || 'x64'}`} delay={1.2} />
+          <motion.div 
+            animate={{ opacity: [1, 0] }} 
+            transition={{ repeat: Infinity, duration: 0.8 }} 
+            style={{ ...s.cursor, background: dmsTheme.colors.accent }} 
+          />
+        </div>
+      </motion.div>
+    </div>
+  );
+};
