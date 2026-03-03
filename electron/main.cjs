@@ -1,23 +1,19 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog, protocol } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, dialog, protocol, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-/**
- * 1. PRIVILEGE REGISTRATION
- * Ini WAJIB agar Electron mengizinkan React menampilkan file dari local drive (C:/...)
- * Harus dipanggil sebelum app.whenReady()
- */
+// 1. PRIVILEGE REGISTRATION
 protocol.registerSchemesAsPrivileged([
-  { 
-    scheme: 'file', 
-    privileges: { 
-      secure: true, 
-      standard: true, 
-      supportFetchAPI: true, 
-      corsEnabled: true, 
-      bypassCSP: true 
-    } 
-  }
+    { 
+        scheme: 'file', 
+        privileges: { 
+            secure: true, 
+            standard: true, 
+            supportFetchAPI: true, 
+            corsEnabled: true, 
+            bypassCSP: true 
+        } 
+    }
 ]);
 
 const baseDir = __dirname;
@@ -25,18 +21,19 @@ const baseDir = __dirname;
 function safeRequire(relativeFsPath) {
     const fullPath = path.join(baseDir, relativeFsPath);
     if (!fs.existsSync(fullPath)) {
-        console.error(`\n[ERROR] File Tidak Ditemukan: ${fullPath}`);
         throw new Error(`Module missing: ${relativeFsPath}`);
     }
     return require(fullPath);
 }
 
-// --- Import Handlers & Services ---
+// 2. IMPORT SERVICES & HANDLERS
 const { registerDatabaseHandlers } = safeRequire('services/database.service.cjs');
 const { registerAppHandlers } = safeRequire('handlers/app.ipc.cjs');
 const { registerAuthHandlers } = safeRequire('handlers/auth.ipc.cjs');
 const { registerLaporanHandlers } = safeRequire('handlers/laporan.ipc.cjs');
 const { registerWindowHandlers } = safeRequire('handlers/window.ipc.cjs');
+const settingsManager = safeRequire('services/settingsManager.cjs');
+// exportManager SUDAH DIHAPUS KARENA LOGIKANYA PINDAH KE LAPORAN.IPC.CJS
 
 let mainWindow;
 let splashWindow;
@@ -44,38 +41,25 @@ let splashWindow;
 function createWindows() {
     const preloadPath = path.join(baseDir, 'preload.cjs');
 
-    // 1. Splash Window
     splashWindow = new BrowserWindow({
-        width: 500, 
-        height: 350, 
-        frame: false, 
-        transparent: true, 
-        alwaysOnTop: true, 
-        center: true,
+        width: 500, height: 350, frame: false, transparent: true, 
+        alwaysOnTop: true, center: true,
         webPreferences: { 
             preload: preloadPath, 
-            contextIsolation: true,
-            nodeIntegration: false,
-            devTools:true,
+            contextIsolation: true, 
+            nodeIntegration: false 
         }
-        
     });
     splashWindow.loadFile(path.join(baseDir, 'splash.html'));
 
-    // 2. Main Window
     mainWindow = new BrowserWindow({
-        width: 1200, 
-        height: 750, 
-        show: false, 
-        frame: false, 
+        width: 1200, height: 750, show: false, frame: false, 
         backgroundColor: '#001529',
         webPreferences: { 
             preload: preloadPath, 
-            contextIsolation: true,
+            contextIsolation: true, 
             nodeIntegration: false,
-            // Izinkan webSecurity tetap true tapi protocol sudah kita whitelist di atas
-            webSecurity: false, 
-            devTools: true,
+            webSecurity: false // Untuk merender file:// dari folder AppData
         }
     });
 
@@ -89,50 +73,45 @@ function createWindows() {
 }
 
 async function initializeApp() {
-    // Di dalam function initializeApp() bagian paling bawah
-setTimeout(() => {
-    if (splashWindow && !splashWindow.isDestroyed()) {
-        splashWindow.close();
-    }
-    if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.show();
-        mainWindow.focus();
-
-        // TAMBAHKAN INI: Buka devtools otomatis jika bukan versi packaged (production)
-        if (!app.isPackaged) {
-            mainWindow.webContents.openDevTools({ mode: 'detach' }); 
-        }
-    }
-}, 500);
     try {
-        sendSplashProgress(30, 'Initializing Database & Security...');
-        // registerDatabaseHandlers sekarang juga menjalankan ensureAdminUser()
-        registerDatabaseHandlers(); 
-
+         //const db = registerDatabaseHandlers(ipcMain); 
+        sendSplashProgress(20, 'Initializing Database...');
+        // 1. Ambil instance DB dari service
+        const dbInstance = registerDatabaseHandlers(ipcMain);
+        registerWindowHandlers(ipcMain, mainWindow, dbInstance);
+        sendSplashProgress(40, 'Configuring Services...');
+        // Inisialisasi Settings Manager
+        if (settingsManager && settingsManager.init) {
+            settingsManager.init(ipcMain); 
+        }
+        // --- PERBAIKAN: exportManager.init DIHAPUS DARI SINI ---
+        // Karena logikanya sudah menyatu di registerLaporanHandlers
         sendSplashProgress(70, 'Mounting System Handlers...');
-        registerAppHandlers();
-        registerAuthHandlers();
-        registerLaporanHandlers();
-        registerWindowHandlers();
+        registerAppHandlers(ipcMain);
+        registerAuthHandlers(ipcMain); 
+        // Memanggil handler laporan yang berisi logika Export Word/PDF utuh
+        registerLaporanHandlers(); 
         
-        sendSplashProgress(90, 'System Authorized. Opening Dashboard...');
-        await new Promise(r => setTimeout(r, 1000)); 
+        sendSplashProgress(90, 'Preparing Interface...');
+        await new Promise(r => setTimeout(r, 800)); 
+
         sendSplashProgress(100, 'Ready');
 
         setTimeout(() => {
-            if (splashWindow && !splashWindow.isDestroyed()) {
-                splashWindow.close();
-            }
+            if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.show();
-                mainWindow.focus();
+                if (!app.isPackaged) {
+                    mainWindow.webContents.openDevTools({ mode: 'detach' });
+                }
             }
-        }, 500);
+        }, 400);
 
     } catch (err) {
-        console.error("BOOTSTRAP_ERROR:", err.message);
-        sendSplashProgress(0, 'Critical Error: ' + err.message);
-        dialog.showErrorBox('Startup Failed', err.message);
+        console.error("BOOTSTRAP_ERROR:", err);
+        if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
+        dialog.showErrorBox('Startup Failed', `Modul Error: ${err.message}`);
     }
 }
 
@@ -143,23 +122,21 @@ function sendSplashProgress(percent, message) {
 }
 
 app.whenReady().then(() => {
-    // Tambahan: Double check session agar file protocol diizinkan tanpa batasan CORS tambahan
-    const { session } = require('electron');
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
         callback({
             responseHeaders: {
                 ...details.responseHeaders,
-                'Content-Security-Policy': ["default-src 'self' 'unsafe-inline' data: file:; img-src 'self' data: file:;"]
+                'Content-Security-Policy': ["default-src 'self' 'unsafe-inline' data: file:; img-src 'self' data: file: blob:;"]
             }
         });
     });
 
     Menu.setApplicationMenu(null); 
     createWindows();
+});
 
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) createWindows();
-    });
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
 });
 
 app.on('window-all-closed', () => {

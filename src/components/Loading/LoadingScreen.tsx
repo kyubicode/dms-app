@@ -1,6 +1,5 @@
 import React from 'react';
-import { Typography } from 'antd';
-import { dmsTheme } from '@/styles/dms.theme';
+import { Typography, ConfigProvider } from 'antd';
 
 const { Text } = Typography;
 
@@ -10,84 +9,80 @@ export default function LoadingScreen() {
 
   return (
     <div style={styles.overlay}>
-      {/* Efek Watermark Background - Menggunakan Navy dengan opacity rendah */}
-      <div style={styles.backgroundBranding}>ZenTE</div>
-
-      <div style={styles.wrapper}>
-        {/* Header dengan Icon & Title */}
-        <div style={styles.header}>
-          <div style={styles.brandBox}>
-            <div style={styles.brandDot} />
-            <Text style={styles.loadText}>CORE_BOOT_SEQUENCE</Text>
+      {/* Background Mesh Gradient yang sama dengan Login */}
+      <div style={styles.meshBackground} />
+      
+      <div style={styles.glassBox} className="loading-card-appear">
+        <div style={styles.wrapper}>
+          {/* Header */}
+          <div style={styles.header}>
+            <div style={styles.brandBox}>
+              <div className="pulse-dot" style={styles.brandDot} />
+              <Text style={styles.loadText}>SYSTEM_BOOT</Text>
+            </div>
+            <Text className="loading-dots" style={styles.statusText}>
+              VERIFYING
+            </Text>
           </div>
-          <Text className="loading-dots" style={styles.statusText}>
-            INITIALIZING
-          </Text>
-        </div>
 
-        {/* Progress Bar Container */}
-        <div style={styles.barContainer}>
-          {/* Elemen yang bergerak (Shimmer) - Sekarang menggunakan warna Accent (Amber) */}
-          <div className="shimmer-bar" />
-        </div>
+          {/* Progress Bar Container */}
+          <div style={styles.barContainer}>
+            <div className="shimmer-bar" />
+          </div>
 
-        {/* Technical Metadata */}
-        <div style={styles.footer}>
-          <div className="status-pulse" style={styles.dot} />
-          <div style={styles.metaWrapper}>
-            <Text style={styles.metaText}>
-              NODE_ID: {nodeId} // ESTABLISHING_ENCRYPTED_LINK
-            </Text>
-            <Text style={styles.subMetaText}>
-              SLDINTEGRATION_INDUSTRIAL_PROTOCOL_V.4.0.1 // SECURE_LAYER_ACTIVE
-            </Text>
+          {/* Technical Metadata */}
+          <div style={styles.footer}>
+            <div style={styles.metaWrapper}>
+              <Text style={styles.metaText}>
+                NODE_ID: {nodeId} // SECURE_CHANNEL_ESTABLISHED
+              </Text>
+              <Text style={styles.subMetaText}>
+                ZEN-CORE ENGINE V2.0.4 // HYPERVISOR_ACTIVE
+              </Text>
+            </div>
           </div>
         </div>
       </div>
 
       <style>{`
-        /* Animasi Bar Bergerak dari Kiri ke Kanan */
+        .loading-card-appear {
+          animation: cardAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes cardAppear {
+          from { opacity: 0; transform: scale(0.9) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
         @keyframes shimmer-move {
           0% { transform: translateX(-100%); }
-          50% { transform: translateX(-10%); }
-          100% { transform: translateX(100%); }
+          100% { transform: translateX(150%); }
         }
 
         .shimmer-bar {
           position: absolute;
           top: 0;
           left: 0;
-          width: 70%; 
+          width: 60%; 
           height: 100%;
           background: linear-gradient(
             90deg, 
             transparent, 
-            ${dmsTheme.colors.accent}, 
+            #007AFF, 
             transparent
           );
-          animation: shimmer-move 1.5s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
-          box-shadow: 0 0 15px ${dmsTheme.colors.accent}60;
+          animation: shimmer-move 1.2s infinite ease-in-out;
         }
 
-        /* Animasi Titik Status (Glow) - Menggunakan Amber */
         @keyframes pulse-glow {
-          0%, 100% { 
-            opacity: 1; 
-            filter: drop-shadow(0 0 2px ${dmsTheme.colors.accent}); 
-            transform: scale(1); 
-          }
-          50% { 
-            opacity: 0.5; 
-            filter: drop-shadow(0 0 8px ${dmsTheme.colors.accent}); 
-            transform: scale(0.9); 
-          }
+          0%, 100% { opacity: 1; box-shadow: 0 0 4px #007AFF; }
+          50% { opacity: 0.4; box-shadow: 0 0 12px #007AFF; }
         }
 
-        .status-pulse {
-          animation: pulse-glow 2s infinite ease-in-out;
+        .pulse-dot {
+          animation: pulse-glow 1.5s infinite ease-in-out;
         }
 
-        /* Animasi Teks Berkedip (...) */
         .loading-dots::after {
           content: '';
           animation: dots 1.5s steps(4, end) infinite;
@@ -112,33 +107,37 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100vw',
     height: '100vh',
     display: 'flex',
-    flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    background: dmsTheme.colors.background, // Slate 50
-    zIndex: 99999,
+    backgroundColor: '#f8fafc',
+    zIndex: 999999,
     overflow: 'hidden',
   },
-  backgroundBranding: {
+  meshBackground: {
     position: 'absolute',
-    fontSize: '15vw',
-    fontWeight: 900,
-    color: dmsTheme.colors.primary, // Navy
-    opacity: 0.04,
-    letterSpacing: '-10px',
-    userSelect: 'none',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'radial-gradient(at 0% 0%, #c2e9fb 0%, transparent 50%), radial-gradient(at 100% 0%, #a1c4fd 0%, transparent 50%), radial-gradient(at 100% 100%, #fbc2eb 0%, transparent 50%), radial-gradient(at 0% 100%, #e6dee9 0%, transparent 50%)',
     zIndex: -1,
-    fontFamily: dmsTheme.fonts.main,
+  },
+  glassBox: {
+    width: '400px',
+    background: 'rgba(255, 255, 255, 0.7)',
+    backdropFilter: 'blur(30px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+    borderRadius: '28px',
+    border: '1px solid rgba(255, 255, 255, 0.4)',
+    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.05)',
   },
   wrapper: { 
-    width: '450px', 
-    position: 'relative',
-    padding: '40px',
+    padding: '30px',
   },
   header: { 
     display: 'flex', 
     justifyContent: 'space-between', 
-    marginBottom: '14px',
+    marginBottom: '20px',
     alignItems: 'center'
   },
   brandBox: {
@@ -147,45 +146,35 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '10px'
   },
   brandDot: {
-    width: '12px',
-    height: '12px',
-    background: dmsTheme.colors.primary, // Navy Square
-    borderRadius: '2px',
+    width: '8px',
+    height: '8px',
+    background: '#007AFF',
+    borderRadius: '50%',
   },
   loadText: { 
-    fontSize: '12px', 
-    fontWeight: 900, 
-    letterSpacing: '2px', 
-    color: dmsTheme.colors.text.primary, // Navy Text
-    fontFamily: dmsTheme.fonts.code,
+    fontSize: '11px', 
+    fontWeight: 700, 
+    letterSpacing: '1px', 
+    color: '#1d1d1f',
+    opacity: 0.8,
   },
   statusText: { 
-    fontSize: '11px', 
-    fontWeight: 800, 
-    color: dmsTheme.colors.accent, // Kuning Amber (Warning/Status)
-    width: '90px',
-    fontFamily: dmsTheme.fonts.code,
+    fontSize: '10px', 
+    fontWeight: 600, 
+    color: '#007AFF',
+    width: '70px',
+    textAlign: 'right'
   },
   barContainer: { 
-    height: '4px', 
+    height: '3px', 
     width: '100%', 
-    background: dmsTheme.colors.border, // Slate 200
+    background: 'rgba(0, 0, 0, 0.05)', 
     position: 'relative',
     overflow: 'hidden',
-    borderRadius: dmsTheme.radius.sm,
+    borderRadius: '10px',
   },
   footer: { 
-    marginTop: '24px', 
-    display: 'flex', 
-    alignItems: 'flex-start',
-    gap: '15px',
-  },
-  dot: {
-    marginTop: '6px',
-    width: '8px', 
-    height: '8px', 
-    borderRadius: '50%', 
-    background: dmsTheme.colors.accent, // Amber Glow
+    marginTop: '20px', 
   },
   metaWrapper: {
     display: 'flex',
@@ -193,19 +182,17 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '4px'
   },
   metaText: { 
-    fontSize: '10px', 
-    letterSpacing: '0.5px', 
-    fontWeight: 700,
-    color: dmsTheme.colors.text.primary,
-    fontFamily: dmsTheme.fonts.code,
-    opacity: 0.7
+    fontSize: '9px', 
+    fontWeight: 600,
+    color: '#1d1d1f',
+    opacity: 0.5,
+    fontFamily: 'monospace'
   },
   subMetaText: { 
-    fontSize: '9px', 
-    letterSpacing: '1px', 
-    fontWeight: 600,
-    color: dmsTheme.colors.text.secondary, // Slate 500
-    opacity: 0.5,
-    fontFamily: dmsTheme.fonts.code,
+    fontSize: '8px', 
+    fontWeight: 500,
+    color: '#1d1d1f',
+    opacity: 0.3,
+    fontFamily: 'monospace'
   }
 };

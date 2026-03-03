@@ -1,95 +1,105 @@
-const { ipcMain, BrowserWindow, app } = require('electron');
-const os = require('os'); 
+const { BrowserWindow } = require('electron');
 const si = require('systeminformation');
-// 1. IMPORT HELPER LOG NYA
-const { addLog } = require('../services/log.service.cjs');
 
-function registerWindowHandlers() {
-  // --- 1. KONTROL JENDELA ---
+/**
+ * 1. INITIAL STATE & CACHE (Hardware)
+ */
+let cachedHardware = {
+  gpuModel: 'Loading...',
+  vramTotal: 0,
+  cpuBrand: 'Loading...'
+};
+
+async function runBackgroundHardwareScan() {
+  try {
+    const [cpuData, gpuData] = await Promise.all([
+      si.cpu().catch(() => ({ brand: 'Generic CPU' })),
+      si.graphics().catch(() => ({ controllers: [] }))
+    ]);
+    cachedHardware = {
+      gpuModel: gpuData.controllers[0]?.model || 'Integrated Graphics',
+      vramTotal: gpuData.controllers[0]?.vram || 0,
+      cpuBrand: cpuData.brand || 'Unknown Processor'
+    };
+  } catch (err) {
+    console.error("Hardware scan failed:", err);
+  }
+}
+runBackgroundHardwareScan();
+
+// --- TAMBAHKAN PARAMETER 'db' DI SINI ---
+function registerWindowHandlers(ipcMain, mainWindow, db) {
+  
+  // --- 1. WINDOW SYNC ---
+  if (mainWindow) {
+    mainWindow.on('maximize', () => mainWindow.webContents.send('window-resize-status', true));
+    mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-resize-status', false));
+  }
+
+  // --- 2. WINDOW CONTROL ---
   ipcMain.on('window-control', (event, action) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) return;
-
-    switch (action) {
-      case 'minimize':
-        win.minimize();
-        break;
-      case 'maximize':
-        const isMax = win.isMaximized();
-        if (isMax) {
-          win.unmaximize();
-        } else {
-          win.maximize();
-        }
-        // Opsional: Catat log saat user mengubah ukuran jendela
-        addLog('SYSTEM_UI', `Window ${isMax ? 'Restored' : 'Maximized'}`);
-        break;
-      case 'close':
-        // Catat log sebelum aplikasi benar-benar tertutup
-        addLog('SYSTEM_POWER', 'Application initiated shutdown');
-        win.close();
-        break;
-    }
+    if (action === 'minimize') win.minimize();
+    if (action === 'maximize') win.isMaximized() ? win.unmaximize() : win.maximize();
+    if (action === 'close') win.close();
   });
 
-  // --- 2. CEK STATUS MAXIMIZED ---
-  ipcMain.handle('is-window-maximized', (event) => {
+  ipcMain.handle('window:isMaximized', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     return win ? win.isMaximized() : false;
   });
 
-  // --- 3. HANDLER INFORMASI SISTEM ---
-  ipcMain.handle('get-system-info', async () => {
+  // --- 3. SYSTEM MONITOR (FAST) ---
+  ipcMain.handle('system:get-gpu-usage', async () => {
     try {
-      const cpus = os.cpus();
-      const cpuModel = cpus.length > 0 ? cpus[0].model : "Unknown CPU";
-      const totalMemGB = Math.round(os.totalmem() / (1024 ** 3)); 
-      
-      const systemData = {
-        cpu: cpuModel,
-        totalMemory: `${totalMemGB} GB`,
-        version: `v${app.getVersion()}`,
-        platform: os.platform(),
-        arch: os.arch()
-      };
-
-      // 2. CATAT KE DATABASE AUDIT_LOGS
-      // Ini yang bikin data muncul di UI Gahar V3 lu!
-      addLog('HARDWARE_CHECK', `Audit: ${systemData.cpu} | RAM: ${systemData.totalMemory}`);
-
-      return systemData;
-    } catch (error) {
-      // 3. CATAT ERROR JIKA GAGAL
-      addLog('HARDWARE_ERROR', 'Failed to fetch system information', error.message);
-      
-      console.error("Gagal mengambil info sistem:", error);
-      return { cpu: "N/A", totalMemory: "N/A", version: "v0.0.0" };
-    }
-  });
-
-  // --- 4. REAL-TIME GPU & MEMORY USAGE (DINAMIS) ---
-  ipcMain.handle('get-gpu-usage', async () => {
-    try {
-      const graphics = await si.graphics();
-      const memory = await si.mem();
-      
-      // Ambil GPU pertama yang aktif
-      const gpu = graphics.controllers[0]; 
-
+      const mem = await si.mem();
       return {
-        gpuModel: gpu.model || 'Generic GPU',
-        vramTotal: gpu.vram || 0, // Dalam MB
-        vramUsed: gpu.vramUsed || 0, // Dalam MB (Hanya support beberapa driver)
-        ramUsedPercent: Math.round((memory.active / memory.total) * 100),
-        ramUsedGB: (memory.active / (1024 ** 3)).toFixed(2)
+        ...cachedHardware,
+        vramUsed: 0, 
+        ramUsedPercent: Math.round((mem.active / mem.total) * 100),
+        ramUsedGB: (mem.active / (1024 ** 3)).toFixed(2)
       };
     } catch (error) {
-      console.error("GPU Stats Error:", error);
-      return null;
+      return { ramUsedPercent: 0, ramUsedGB: "0", gpuModel: 'N/A' };
     }
   });
 
-  
+  // --- 4. APP INFO ---
+  ipcMain.handle('app:get-sys-info', async () => ({
+    platform: process.platform,
+    arch: process.arch,
+    version: "1.0.0",
+    cpu: cachedHardware.cpuBrand
+  }));
+
+  // --- KUNCI UTAMA: Handler Dashboard Stats ---
+// --- Di dalam registerWindowHandlers ---
+ipcMain.handle('dashboard:get-stats', async () => {
+  try {
+    if (!db) {
+      console.error("❌ DB Instance Null di window.ipc");
+      return { totalLaporan: 0, totalAlbum: 0, totalFoto: 0 };
+    }
+
+    const laporan = db.prepare("SELECT COUNT(*) as count FROM laporan").get();
+    const album = db.prepare("SELECT COUNT(*) as count FROM dokumentasi").get();
+    const foto = db.prepare("SELECT COUNT(*) as count FROM table_foto").get();
+
+    const data = {
+      totalLaporan: laporan?.count || 0,
+      totalAlbum: album?.count || 0, 
+      totalFoto: foto?.count || 0
+    };
+
+    console.log("📊 DATABASE CHECK:", data); // LIAT DI TERMINAL VS CODE
+    return data;
+  } catch (err) {
+    console.error("❌ SQL Error Dashboard:", err.message);
+    return { totalLaporan: 0, totalAlbum: 0, totalFoto: 0 };
+  }
+});
+
 }
 
 module.exports = { registerWindowHandlers };

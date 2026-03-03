@@ -1,40 +1,38 @@
 import React from 'react';
 import { Spin } from 'antd';
-import { dmsTheme } from '@/styles/dms.theme';
 
 interface Props {
-  size?: number;       // Tinggi maksimal bar
+  size?: number;       // Diameter spinner
   tip?: string;        // Teks loading
-  color?: string;      // Warna bar
+  color?: string;      // Warna spinner (Default: Apple Blue)
 }
 
 export const SmallLoading: React.FC<Props> = ({ 
-  size = 14, 
+  size = 16, 
   tip, 
-  color = dmsTheme.colors.primary 
+  color = '#007AFF' 
 }) => {
-  // Indikator custom: 3 bar vertikal tipis (Data Transmission Look)
-  const industrialIndicator = (
+  // Indikator custom: Minimalist Circular Spinner (Smooth Rotation)
+  const appleIndicator = (
     <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', // Diubah ke center agar bar tumbuh dari tengah ke atas-bawah
-      gap: '2px', 
+      position: 'relative',
+      width: size,
       height: size,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
     }}>
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="industrial-bar"
-          style={{
-            width: '2px', // Lebih tipis agar elegan
-            background: color,
-            borderRadius: '1px',
-            boxShadow: `0 0 6px ${color}40`,
-            animation: 'industrial-grow 0.8s infinite ease-in-out',
-            animationDelay: `${i * 0.15}s`
-          }}
-        />
-      ))}
+      <div
+        className="apple-spinner-ring"
+        style={{
+          width: '100%',
+          height: '100%',
+          border: `2px solid ${color}20`, // Ring tipis transparan
+          borderTop: `2px solid ${color}`, // Bagian yang berputar
+          borderRadius: '50%',
+          animation: 'apple-spin 0.8s linear infinite',
+        }}
+      />
     </div>
   );
 
@@ -42,27 +40,28 @@ export const SmallLoading: React.FC<Props> = ({
     <div style={{ 
       display: 'inline-flex', 
       alignItems: 'center', 
-      gap: 8,
-      padding: '2px 4px'
+      gap: 10,
+      padding: '2px 0'
     }}>
-      <Spin indicator={industrialIndicator} />
+      <Spin indicator={appleIndicator} />
+      
       {tip && (
         <span style={{ 
-          fontSize: '10px', // Lebih kecil menyesuaikan tema
-          fontWeight: 800, 
-          letterSpacing: '0.5px', 
-          color: color,
-          textTransform: 'uppercase',
-          fontFamily: 'monospace', // Memberikan kesan teknis
+          fontSize: '11px', 
+          fontWeight: 600, 
+          letterSpacing: '-0.2px', 
+          color: '#1d1d1f', // Gunakan warna teks standar Apple
+          opacity: 0.7,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
         }}>
           {tip}
         </span>
       )}
 
       <style>{`
-        @keyframes industrial-grow {
-          0%, 100% { height: 4px; opacity: 0.3; }
-          50% { height: 100%; opacity: 1; }
+        @keyframes apple-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

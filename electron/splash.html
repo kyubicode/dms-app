@@ -148,20 +148,26 @@
     DEV: <span class="dev-name">SIGIT S</span>
   </div>
 
-  <script>
+<script>
     const progressBar = document.getElementById('progressBar');
     const statusMessage = document.getElementById('statusMessage');
 
-    window.api.onSplashProgress((data) => {
-      if (data) {
-        const percent = data.percent || 0;
-        const msg = data.message || "Initializing";
+    // UBAH DARI window.api MENJADI window.electron
+    if (window.electron && window.electron.onSplashProgress) {
+        window.electron.onSplashProgress((data) => {
+            if (data) {
+                const percent = data.percent || 0;
+                const msg = data.message || "Initializing";
 
-        progressBar.style.width = percent + '%';
-        // Gaya teks: CAPITAL_WITH_UNDERSCORE agar tetap terasa industrial
-        statusMessage.textContent = msg.toUpperCase().replace(/\s/g, '_');
-      }
-    });
-  </script>
+                progressBar.style.width = percent + '%';
+                // Gaya teks: CAPITAL_WITH_UNDERSCORE
+                statusMessage.textContent = msg.toUpperCase().replace(/\s/g, '_') + '...';
+            }
+        });
+    } else {
+        console.error("Electron API not found in Splash Screen");
+        statusMessage.textContent = "IPC_HANDSHAKE_ERROR";
+    }
+</script>
 </body>
 </html>

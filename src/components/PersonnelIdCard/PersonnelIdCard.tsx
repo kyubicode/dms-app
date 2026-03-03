@@ -3,7 +3,6 @@ import { Button, Avatar, Modal } from 'antd';
 import { IoFingerPrint } from "react-icons/io5";
 import { AiOutlinePrinter } from 'react-icons/ai';
 import { dmsTheme } from '@/styles/dms.theme';
-import { RoleGuard } from '../Guards/RoleGuard';
 
 interface UserRecord {
   id: string;
@@ -18,7 +17,7 @@ interface PersonnelIdCardProps {
   visible: boolean;
   user: UserRecord | null;
   onClose: () => void;
-  formatFilePath: (path: string | undefined) => string;
+  formatFilePath: (path: string | undefined) => string | null;
 }
 
 export const PersonnelIdCard: React.FC<PersonnelIdCardProps> = ({ 
@@ -27,91 +26,95 @@ export const PersonnelIdCard: React.FC<PersonnelIdCardProps> = ({
   onClose, 
   formatFilePath 
 }) => {
-  if (!user) return null;
-
   return (
-    <>
-      <Modal 
-        open={visible} 
-        onCancel={onClose} 
-        footer={null} 
-        width={520} 
-        centered 
-        styles={{ body: { padding: 0, background: 'transparent' } }}
-        closeIcon={<div className="modal-close-tech">X</div>}
-      >
-        <div className={`id-card-visual ${user.role}`}>
-          <div className="card-texture" />
-          
-          <div className="card-header-visual">
-            <div className="org-brand">
-              <div className="brand-logo" />
-              <div className="brand-text">
-                <span className="main">CV.DINAMIKA MITRA SINERGI</span>
-                <span className="sub">SECURE ACCESS NODE // CORE_V2</span>
-              </div>
-            </div>
-            <div className="hologram-chip" />
-          </div>
-
-          <div className="card-body-visual">
-            <div className="photo-area">
-              {/* Target rudal/corner brackets telah dihapus untuk tampilan lebih bersih */}
-              <Avatar 
-                shape="square" 
-                size={140} 
-                src={user.foto ? formatFilePath(user.foto) : undefined} 
-                className="id-avatar"
-              />
-            </div>
+    <Modal 
+      open={visible} 
+      onCancel={onClose} 
+      footer={null} 
+      width={520} 
+      centered 
+      styles={{ body: { padding: 0, background: 'transparent' } }}
+      closeIcon={<div className="modal-close-tech">X</div>}
+      destroyOnClose
+    >
+      {!user ? (
+        <div style={{ padding: '40px', textAlign: 'center', background: '#0f172a', borderRadius: '12px', color: '#38bdf8' }}>
+          LOADING_SECURE_DATA...
+        </div>
+      ) : (
+        <>
+          <div className={`id-card-visual ${user.role}`}>
+            <div className="card-texture" />
             
-            <div className="info-area">
-              <div className="badge-row">
-                <span className="role-label">{user.role.toUpperCase()}</span>
-                <div className="status-indicator">● SECURE_DATA</div>
-              </div>
-              
-              <h2 className="user-fullname">{user.fullname.toUpperCase()}</h2>
-              
-              <div className="grid-details">
-                <div className="detail-box">
-                  <label>NODE_ID</label>
-                  <span className="mono-text">{user.id_pegawai}</span>
-                </div>
-                <div className="detail-box">
-                  <label>ALIAS</label>
-                  <span className="mono-text">@{user.username}</span>
+            <div className="card-header-visual">
+              <div className="org-brand">
+                <div className="brand-logo" />
+                <div className="brand-text">
+                  <span className="main">CV.DINAMIKA MITRA SINERGI</span>
+                  <span className="sub">SECURE ACCESS NODE // CORE_V2</span>
                 </div>
               </div>
+              <div className="hologram-chip" />
+            </div>
 
-              <div className="security-footer">
-                <div className="fingerprint-scan"><IoFingerPrint /></div>
-                <div className="auth-stamp">VERIFIED_BY_CORE_PROTOCOL</div>
+            <div className="card-body-visual">
+              <div className="photo-area">
+                <Avatar 
+                  shape="square" 
+                  size={140} 
+                  src={user.foto ? formatFilePath(user.foto) : undefined} 
+                  className="id-avatar"
+                />
+              </div>
+              
+              <div className="info-area">
+                <div className="badge-row">
+                  <span className="role-label">{user.role.toUpperCase()}</span>
+                  <div className="status-indicator">● SECURE_DATA</div>
+                </div>
+                
+                <h2 className="user-fullname">{user.fullname.toUpperCase()}</h2>
+                
+                <div className="grid-details">
+                  <div className="detail-box">
+                    <label>NODE_ID</label>
+                    <span className="mono-text">{user.id_pegawai}</span>
+                  </div>
+                  <div className="detail-box">
+                    <label>ALIAS</label>
+                    <span className="mono-text">@{user.username}</span>
+                  </div>
+                </div>
+
+                <div className="security-footer">
+                  <div className="fingerprint-scan"><IoFingerPrint /></div>
+                  <div className="auth-stamp">VERIFIED_BY_CORE_PROTOCOL</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card-bottom-visual">
+              <div className="magnetic-stripe" />
+              <div className="legal-text">
+                PROPERTY OF DMS_SYSTEMS. UNAUTHORIZED USE IS A VIOLATION OF SECURITY_PROTOCOL_09.
               </div>
             </div>
           </div>
 
-          <div className="card-bottom-visual">
-            <div className="magnetic-stripe" />
-            <div className="legal-text">
-              PROPERTY OF DMS_SYSTEMS. UNAUTHORIZED USE IS A VIOLATION OF SECURITY_PROTOCOL_09.
-            </div>
+          <div className="modal-actions-print">
+            <Button 
+              type="primary" 
+              block 
+              icon={<AiOutlinePrinter />} 
+              onClick={() => window.print()} 
+              className="btn-print"
+              style={{ background: dmsTheme.colors.primary, border: 'none' }}
+            >
+              EXECUTE HARD COPY PRINT
+            </Button>
           </div>
-        </div>
-      <div className="modal-actions-print">
-          <Button 
-            type="primary" 
-            block 
-            icon={<AiOutlinePrinter />} 
-            onClick={() => window.print()} 
-            className="btn-print"
-            style={{ background: dmsTheme.colors.primary, border: 'none' }}
-          >
-            EXECUTE HARD COPY PRINT
-          </Button>
-        </div>
-  
-      </Modal>
+        </>
+      )}
 
       <style>{`
         .id-card-visual {
@@ -161,9 +164,7 @@ export const PersonnelIdCard: React.FC<PersonnelIdCardProps> = ({
           border: 1px solid rgba(148, 163, 184, 0.3);
         }
 
-        .id-avatar { 
-          border-radius: 4px !important; 
-        }
+        .id-avatar { border-radius: 4px !important; }
 
         .info-area { flex: 1; display: flex; flex-direction: column; }
         .badge-row { display: flex; justify-content: space-between; align-items: center; }
@@ -208,6 +209,6 @@ export const PersonnelIdCard: React.FC<PersonnelIdCardProps> = ({
           .modal-actions-print, .modal-close-tech { display: none !important; }
         }
       `}</style>
-    </>
+    </Modal>
   );
 };

@@ -11,7 +11,6 @@ import { s, globalCSS, dashboardAnimations } from './Dashboard.styles';
 import { DashboardStats } from '../../types/Dashboard.types';
 
 // Components
-import TitleBar from '../../components/TitleBar/TitleBar';
 import LoadingScreen from '@/components/Loading/LoadingScreen';
 import { DashboardHeader } from '../../components/DashboardHeader/DashboardHeader';
 import { DashboardNav } from '../../components/DashboardNav/DashboardNav';
@@ -33,16 +32,26 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchBackendData = async () => {
       try {
-        const [resStats, resSys] = await Promise.all([
-          (window as any).api.getDashboardStats(),
-          (window as any).api.getSystemInfo()
-        ]);
-        setStats(resStats);
-        setSysInfo(resSys);
+        /** * PERBAIKAN: Menggunakan window.electron
+         * Pastikan handler 'dashboard:get-stats' dan 'app:get-sys-info' (atau sejenisnya)
+         * sudah terdaftar di main process.
+         */
+        const electronAPI = (window as any).electron;
+
+        if (electronAPI) {
+          const [resStats, resSys] = await Promise.all([
+            electronAPI.invoke('dashboard:get-stats'), // Menggunakan invoke agar lebih aman
+            electronAPI.invoke('app:get-sys-info')
+          ]);
+          
+          if (resStats) setStats(resStats);
+          if (resSys) setSysInfo(resSys);
+        }
       } catch (err) { 
-        console.error("Fetch Error:", err); 
+        console.error("Dashboard Fetch Error:", err); 
       } finally {
-        setTimeout(() => setIsInitialLoading(false), 600);
+        // Berikan sedikit delay agar transisi LoadingScreen terasa smooth
+        setTimeout(() => setIsInitialLoading(false), 800);
       }
     };
     fetchBackendData();
@@ -76,12 +85,12 @@ export default function Dashboard() {
     <ConfigProvider theme={{ 
       token: { 
         colorPrimary: '#0f172a', 
-        borderRadius: 16, // AntD Card di dalam konten akan mengikuti rounding ini
+        borderRadius: 16, 
         fontFamily: dmsTheme.fonts.main 
       },
       components: {
         Card: {
-          boxShadowTertiary: '0 4px 20px rgba(0,0,0,0.04)', // Shadow halus untuk card konten
+          boxShadowTertiary: '0 4px 20px rgba(0,0,0,0.04)',
         }
       }
     }}>
@@ -90,21 +99,19 @@ export default function Dashboard() {
       <style>{dashboardAnimations}</style>
 
       {(isInitialLoading || isLoggingOut) && <LoadingScreen />}
-      
-      <TitleBar />
 
-      <Layout style={s.layoutBase}>
-        <div style={s.headerWrapper}>
+      <Layout style={s.layoutBase as any}>
+        <div style={s.headerWrapper as any}>
           <DashboardHeader onLogoutStart={() => setIsLoggingOut(true)} />
-          <div style={s.navContainer}>
+          <div style={s.navContainer as any}>
             <DashboardNav activeTab={activeTab} onTabChange={handleTabChange} />
           </div>
         </div>
 
-        <Content style={s.mainContent}>
-          <div style={s.breadcrumbArea}>
+        <Content style={s.mainContent as any}>
+          <div style={s.breadcrumbArea as any}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-              <div style={s.iconBox}>{TabIcon}</div>
+              <div style={s.iconBox as any}>{TabIcon}</div>
               
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
@@ -128,15 +135,14 @@ export default function Dashboard() {
                     {activeTab}
                   </span>
                 </div>
-                <Text style={s.metaTextAccent}>
-                  {sysInfo?.platform || 'DARWIN'} // V.{import.meta.env.VITE_APP_VERSION}
+                <Text style={s.metaTextAccent as any}>
+                  {sysInfo?.platform?.toUpperCase() || 'STATION_ACTIVE'} // V.2.0.1
                 </Text>
               </div>
             </div>
           </div>
           
-          {/* AREA KONTEN: Bersih tanpa glass-panel pembungkus */}
-          <div style={s.contentContainer}>
+          <div style={s.contentContainer as any}>
             {RenderedContent}
           </div>
         </Content>

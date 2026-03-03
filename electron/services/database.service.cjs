@@ -10,7 +10,7 @@ const dbPath = path.join(userDataPath, 'dms.db');
 const uploaderPath = path.join(userDataPath, 'arsip');
 const avatarPath = path.join(userDataPath, 'avatar');
 
-// 2. Definisikan Path Absolut untuk Default Avatar
+// 2. Definisikan Path Absolut untuk Default Avatar di AppData
 const defaultAvatarPath = path.join(avatarPath, 'default.png');
 
 // 3. Inisialisasi Database
@@ -23,11 +23,50 @@ const db = new Database(dbPath);
     }
 });
 
+/**
+ * FUNGSI: Inisialisasi Asset Default
+ * Menyalin foto dari folder 'public' project ke folder 'AppData'
+ * DITAMBAHKAN: Logika pengecekan file 0 byte
+ */
+const initDefaultAssets = () => {
+    // Path asal foto di folder public project
+    const sourceDefaultPhoto = path.join(app.getAppPath(), 'public', 'default-user.png');
+
+    try {
+        // PERBAIKAN: Jika file sudah ada tapi 0 byte, hapus dulu agar bisa di-copy ulang yang benar
+        if (fs.existsSync(defaultAvatarPath)) {
+            const stats = fs.statSync(defaultAvatarPath);
+            if (stats.size === 0) {
+                console.log("⚠️ [SYSTEM] Corrupted 0-byte avatar detected, removing...");
+                fs.unlinkSync(defaultAvatarPath);
+            }
+        }
+
+        // Jika file belum ada (atau baru saja dihapus karena 0 byte)
+        if (!fs.existsSync(defaultAvatarPath)) {
+            if (fs.existsSync(sourceDefaultPhoto)) {
+                // Proses Copy File fisik asli
+                fs.copyFileSync(sourceDefaultPhoto, defaultAvatarPath);
+                console.log("✅ [SYSTEM] Default avatar initialized successfully.");
+            } else {
+                // Jika sumber benar-benar tidak ada, buat file dummy sementara (last resort)
+                fs.writeFileSync(defaultAvatarPath, "");
+                console.warn("❌ [SYSTEM] CRITICAL: source default-user.png NOT FOUND at:", sourceDefaultPhoto);
+            }
+        }
+    } catch (err) {
+        console.error("❌ [SYSTEM] Failed to init assets:", err.message);
+    }
+};
+
+// Jalankan inisialisasi asset sebelum database digunakan
+initDefaultAssets();
+
 // 5. Konfigurasi SQLite
 db.pragma('foreign_keys = ON');
 db.pragma('journal_mode = WAL'); 
 
-// 6. Inisialisasi Skema Tabel (DIPERBARUI DENGAN KOLOM USERNAME)
+// 6. Inisialisasi Skema Tabel
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,11 +116,15 @@ db.exec(`
     username TEXT DEFAULT 'System',
     error TEXT
   );
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
 `);
 
 /**
  * -----------------------------------------------------------
- * AUTO-MIGRATION (PENTING: Menambahkan kolom jika belum ada)
+ * AUTO-MIGRATION
  * -----------------------------------------------------------
  */
 try {
@@ -99,7 +142,7 @@ try {
 
 /**
  * -----------------------------------------------------------
- * UNIFIED LOGGING SYSTEM (DIPERBARUI)
+ * UNIFIED LOGGING SYSTEM
  * -----------------------------------------------------------
  */
 const auditLog = (query, status, username = 'System', error = null) => {
@@ -125,26 +168,46 @@ function registerDatabaseHandlers() {
             const salt = bcrypt.genSaltSync(10);
             const hash = bcrypt.hashSync('admin123', salt);
             
-            if (!fs.existsSync(defaultAvatarPath)) {
-                fs.writeFileSync(defaultAvatarPath, ""); 
-            }
-
             const insertAdmin = db.prepare(`
                 INSERT INTO users (foto, username, id_pegawai, fullname, password_hash, role)
                 VALUES (?, ?, ?, ?, ?, ?)
             `);
 
+            // Gunakan path absolut defaultAvatarPath yang sudah disiapkan
             insertAdmin.run(defaultAvatarPath, 'admin', 'ADM-01', 'Super Admin', hash, 'admin');
             auditLog('Default admin created', 'SEEDER_SUCCESS', 'System');
         }
     } catch (err) {
         console.error("❌ Seeder Error:", err.message);
     }
+try {
+        const checkSettings = db.prepare("SELECT COUNT(*) as count FROM settings").get();
+        if (checkSettings.count === 0) {
+            console.log("[DATABASE] Initializing default template settings...");
+            const insertSetting = db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)");
+            
+            const defaults = [
+                ['pageSize', JSON.stringify('a4')],
+                ['columns', JSON.stringify(3)],
+                ['imgHeight', JSON.stringify(45)],
+                ['gap', JSON.stringify(10)],
+                ['headerColor', JSON.stringify('#1F4E78')],
+                ['companyName', JSON.stringify('CV DINAMIKA SINERGI')]
+            ];
 
+            const insertMany = db.transaction((data) => {
+                for (const [k, v] of data) insertSetting.run(k, v);
+            });
+
+            insertMany(defaults);
+            console.log("✅ [DATABASE] Default settings seeded.");
+        }
+    } catch (err) {
+        console.error("❌ Settings Seeder Error:", err.message);
+    }
     /**
      * 2. IPC HANDLERS
      */
-    
     ipcMain.handle('db:execute-sql', async (event, sql) => {
         let cleanQuery = sql.trim();
         const queryUpper = cleanQuery.toUpperCase();
@@ -209,6 +272,7 @@ function registerDatabaseHandlers() {
             };
         } catch (e) { return { success: false, error: e.message }; }
     });
+    return db;
 }
 
 module.exports = {

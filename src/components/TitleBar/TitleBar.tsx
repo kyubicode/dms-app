@@ -4,20 +4,52 @@ import { titleBarGlobalStyles } from './TitleBar.styles';
 
 const TitleBar: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
+  // Ambil API dari window object (dieksplos via preload)
+  const api = (window as any).electron;
 
   useEffect(() => {
-    const checkMaximized = async () => {
-      if (window.api?.isMaximized) {
-        const status = await window.api.isMaximized();
+    if (!api) return;
+
+    // 1. Cek status maximized saat komponen pertama kali dimuat
+    const syncMaximizedStatus = async () => {
+      try {
+        // Memanggil handler 'window:isMaximized' yang sudah kita buat di window.ipc.cjs
+        const status = await api.invoke('window:isMaximized');
         setIsMaximized(status);
+      } catch (err) {
+        console.warn("TitleBar: window:isMaximized status check failed", err);
       }
     };
-    checkMaximized();
-  }, []);
+
+    syncMaximizedStatus();
+
+    // 2. Listener untuk mendeteksi perubahan ukuran jendela secara real-time
+    // Catatan: Pastikan di main.js Anda mengirim event 'window-resize-status'
+    const unlisten = api.on('window-resize-status', (status: boolean) => {
+      setIsMaximized(status);
+    });
+
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [api]);
 
   const handleControl = (action: 'minimize' | 'maximize' | 'close') => {
-    if (window.api?.sendWindowControl) {
-      window.api.sendWindowControl(action);
+    if (!api) return;
+
+    try {
+      /**
+       * Menggunakan 'window-control' sesuai dengan ipcMain.on('window-control', ...) 
+       * yang ada di window.ipc.cjs Anda.
+       */
+      if (api.sendWindowControl) {
+        api.sendWindowControl(action);
+      } else {
+        // Fallback jika hanya tersedia invoke
+        api.invoke('window-control', action);
+      }
+    } catch (err) {
+      console.error("Failed to send window control:", err);
     }
   };
 
@@ -25,7 +57,7 @@ const TitleBar: React.FC = () => {
     <div className="title-bar-container-fixed">
       <style>{titleBarGlobalStyles}</style>
 
-      {/* KIRI: macOS Traffic Lights */}
+      {/* KIRI: macOS Traffic Lights Style */}
       <div className="macos-controls-section">
         <div className="macos-controls">
           <button 
@@ -46,7 +78,7 @@ const TitleBar: React.FC = () => {
         </div>
       </div>
 
-      {/* TENGAH: Drag Area & Status */}
+      {/* TENGAH: Drag Area & Status Jendela */}
       <div className="title-drag-area-custom">
         <div className="status-center-industrial">
           <div className="pulse-dot-active" />
@@ -56,11 +88,11 @@ const TitleBar: React.FC = () => {
         </div>
       </div>
       
-      {/* KANAN: Brand Info */}
+      {/* KANAN: Informasi Brand & Versi */}
       <div className="brand-section-right">
         <div className="brand-text-industrial">
-          <span className="version-tag">{import.meta.env.VITE_APP_VERSION}</span>
-          <span className="main-label">{import.meta.env.VITE_APP_NAME}</span>
+          <span className="version-tag">{import.meta.env.VITE_APP_VERSION || '2.0.0'}</span>
+          <span className="main-label">{import.meta.env.VITE_APP_NAME || 'ZenTE'}</span>
           <div className="icon-wrapper-industrial">
             <IoLogoElectron />
           </div>

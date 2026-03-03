@@ -9,7 +9,7 @@ import {
 } from 'react-icons/hi2';
 import { TbDatabaseExport } from "react-icons/tb";
 import { ILaporan, IFile } from '@/types/laporan';
-import { dmsTheme } from '@/styles/dms.theme'; // Import dmsTheme utuh
+import { dmsTheme } from '@/styles/dms.theme';
 
 const { Text, Title } = Typography;
 
@@ -22,6 +22,7 @@ interface Props {
   onCancel: () => void;
   onSubmit: (values: any) => void;
   form: any;
+  zIndex?: number;
 }
 
 export const DokumentasiModal: React.FC<Props> = ({
@@ -34,6 +35,8 @@ export const DokumentasiModal: React.FC<Props> = ({
   onSubmit,
   form
 }) => {
+
+  const electronAPI = (window as any).electron;
 
   const handleRemoveFile = (uid?: string) => {
     if (!uid) return;
@@ -50,7 +53,24 @@ export const DokumentasiModal: React.FC<Props> = ({
       width={750}
       centered
       zIndex={1100}
-      style={{ borderRadius: dmsTheme.radius.lg }}
+      // PERBAIKAN: Gunakan style untuk dekorasi kontainer luar (pengganti styles.content)
+      style={{ 
+        borderRadius: dmsTheme.radius.lg,
+        borderTop: `6px solid ${dmsTheme.colors.primary}`,
+        overflow: 'hidden',
+        padding: 0
+      }}
+      // PERBAIKAN: Gunakan styles hanya untuk sub-elemen yang valid (body, header, mask, dll)
+      styles={{
+        body: { 
+          padding: 0, 
+        },
+        header: { 
+          padding: '16px 24px', 
+          borderBottom: `1px solid ${dmsTheme.colors.border}`, 
+          marginBottom: 0 
+        }
+      }}
       closeIcon={<HiOutlineXMark size={20} />}
       title={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
@@ -76,129 +96,130 @@ export const DokumentasiModal: React.FC<Props> = ({
         </div>
       }
     >
-      <Form 
-        form={form} 
-        layout="vertical" 
-        onFinish={onSubmit}
-        style={{ marginTop: 20 }}
-      >
-        <Form.Item
-          name="nama_dokumentasi"
-          label={
-            <Text className="industrial-label" style={{ fontFamily: dmsTheme.fonts.code }}>
-              01 // FOLDER_DESIGNATION / LABEL
-            </Text>
-          }
-          rules={[{ required: true, message: 'Label wajib diisi' }]}
+      <div style={{ padding: '0 24px' }}>
+        <Form 
+          form={form} 
+          layout="vertical" 
+          onFinish={onSubmit}
+          style={{ marginTop: 20 }}
         >
-          <Input 
-            placeholder="CONTOH: LANTAI 1, AREA PRODUKSI, PANEL UTAMA" 
-            className="industrial-input"
-          />
-        </Form.Item>
-
-        <Form.Item 
-          label={
-            <Text className="industrial-label" style={{ fontFamily: dmsTheme.fonts.code }}>
-              02 // MEDIA_ASSETS (MULTIPLE_SELECT)
-            </Text>
-          }
-        >
-          <Button
-            block
-            className="industrial-upload-btn"
-            icon={<HiOutlineCloudArrowUp size={20} />}
-            onClick={async () => {
-              const files: IFile[] = await (window as any).api.selectFiles();
-              if (files && files.length > 0) {
-                const filesWithUid = files.map(f => ({ 
-                  ...f, 
-                  uid: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` 
-                }));
-                setRawFiles([...rawFiles, ...filesWithUid]);
-                message.success(`${files.length} ASSETS_STAGED`);
-              }
-            }}
+          <Form.Item
+            name="nama_dokumentasi"
+            label={
+              <Text className="industrial-label" style={{ fontFamily: dmsTheme.fonts.code }}>
+                01 // FOLDER_DESIGNATION / LABEL
+              </Text>
+            }
+            rules={[{ required: true, message: 'Label wajib diisi' }]}
           >
-            SELECT FILES FROM LOCAL_STORAGE
-          </Button>
+            <Input 
+              placeholder="CONTOH: LANTAI 1, AREA PRODUKSI, PANEL UTAMA" 
+              className="industrial-input"
+            />
+          </Form.Item>
 
-          {/* Asset Preview Grid */}
-          <div className="preview-container">
-            <Row gutter={[10, 10]}>
-              {rawFiles.map(f => (
-                <Col key={f.uid} span={6}>
-                  <div className="preview-card-tactical">
-                    <Image
-                      src={`file://${f.path}`}
-                      alt={f.name}
-                      preview={false}
-                      style={{ width: '100%', height: 90, objectFit: 'cover' }}
-                    />
-                    <div className="preview-overlay">
-                      <Button
-                        type="primary"
-                        danger
-                        icon={<HiOutlineTrash size={14} />}
-                        className="remove-btn"
-                        onClick={() => handleRemoveFile(f.uid)}
+          <Form.Item 
+            label={
+              <Text className="industrial-label" style={{ fontFamily: dmsTheme.fonts.code }}>
+                02 // MEDIA_ASSETS (MULTIPLE_SELECT)
+              </Text>
+            }
+          >
+            <Button
+              block
+              className="industrial-upload-btn"
+              icon={<HiOutlineCloudArrowUp size={20} />}
+              onClick={async () => {
+                if (!electronAPI) {
+                  message.error('ELECTRON_API_NOT_FOUND');
+                  return;
+                }
+                const files: IFile[] = await electronAPI.invoke('select-files');
+                if (files && files.length > 0) {
+                  const filesWithUid = files.map(f => ({ 
+                    ...f, 
+                    uid: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}` 
+                  }));
+                  setRawFiles([...rawFiles, ...filesWithUid]);
+                  message.success(`${files.length} ASSETS_STAGED`);
+                }
+              }}
+            >
+              SELECT FILES FROM LOCAL_STORAGE
+            </Button>
+
+            <div className="preview-container">
+              <Row gutter={[10, 10]}>
+                {rawFiles.map(f => (
+                  <Col key={f.uid} span={6}>
+                    <div className="preview-card-tactical">
+                      <Image
+                        src={`file://${f.path}`}
+                        alt={f.name}
+                        preview={false}
+                        style={{ width: '100%', height: 90, objectFit: 'cover' }}
                       />
+                      <div className="preview-overlay">
+                        <Button
+                          type="primary"
+                          danger
+                          icon={<HiOutlineTrash size={14} />}
+                          className="remove-btn"
+                          onClick={() => handleRemoveFile(f.uid)}
+                        />
+                      </div>
+                      <div className="preview-footer" style={{ fontFamily: dmsTheme.fonts.code }}>
+                        {f.name?.toUpperCase().substring(0, 12)}...
+                      </div>
                     </div>
-                    <div className="preview-footer" style={{ fontFamily: dmsTheme.fonts.code }}>
-                      {f.name?.toUpperCase().substring(0, 12)}...
+                  </Col>
+                ))}
+                {rawFiles.length === 0 && (
+                  <Col span={24}>
+                    <div className="empty-staging">
+                      <HiOutlineDocumentPlus size={32} style={{ opacity: 0.2, marginBottom: 8 }} />
+                      <br />
+                      <span style={{ fontFamily: dmsTheme.fonts.code }}>WAITING_FOR_MEDIA_INPUT...</span>
                     </div>
-                  </div>
-                </Col>
-              ))}
-              {rawFiles.length === 0 && (
-                <Col span={24}>
-                  <div className="empty-staging">
-                    <HiOutlineDocumentPlus size={32} style={{ opacity: 0.2, marginBottom: 8 }} />
-                    <br />
-                    <span style={{ fontFamily: dmsTheme.fonts.code }}>WAITING_FOR_MEDIA_INPUT...</span>
-                  </div>
-                </Col>
-              )}
-            </Row>
-          </div>
-        </Form.Item>
+                  </Col>
+                )}
+              </Row>
+            </div>
+          </Form.Item>
 
-        <div className="form-footer">
-          <Button 
-            onClick={onCancel} 
-            className="btn-cancel"
-            style={{ borderRadius: 4 }}
-          >
-            ABORT_MISSION
-          </Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={loading}
-            icon={<TbDatabaseExport size={18} />}
-            className="btn-submit"
-            style={{ 
-              background: dmsTheme.colors.primary, 
-              border: 'none',
-              borderRadius: 4
-            }}
-          >
-            EXECUTE_COMMIT_TO_DATABASE
-          </Button>
-        </div>
-      </Form>
+          <div className="form-footer">
+            <Button 
+              onClick={onCancel} 
+              className="btn-cancel"
+              style={{ borderRadius: 4 }}
+            >
+              ABORT_MISSION
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              icon={<TbDatabaseExport size={18} />}
+              className="btn-submit"
+              style={{ 
+                background: dmsTheme.colors.primary, 
+                border: 'none',
+                borderRadius: 4
+              }}
+            >
+              EXECUTE_COMMIT_TO_DATABASE
+            </Button>
+          </div>
+        </Form>
+      </div>
 
       <style>{`
-        /* MODAL & HEADER */
-        .ant-modal-content { border-radius: 8px !important; border-top: 6px solid ${dmsTheme.colors.primary}; padding: 0 !important; overflow: hidden; }
-        .ant-modal-header { padding: 16px 24px; border-bottom: 1px solid ${dmsTheme.colors.border} !important; margin-bottom: 0 !important; }
+        /* Menghilangkan padding bawaan AntD modal content untuk kontrol penuh */
+        .ant-modal-content { padding: 0 !important; }
         
-        /* FORM COMPONENTS */
         .industrial-label { font-size: 10px !important; font-weight: 800 !important; letter-spacing: 1.5px; color: #64748b; }
         .industrial-input { border-radius: 4px !important; padding: 10px 14px !important; border: 1px solid ${dmsTheme.colors.border} !important; font-weight: 600; }
-        .industrial-input:focus { border-color: ${dmsTheme.colors.primary} !important; box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1) !important; }
         
-        /* UPLOAD BUTTON */
         .industrial-upload-btn { 
           height: 60px !important; 
           border-radius: 6px !important; 
@@ -213,20 +234,17 @@ export const DokumentasiModal: React.FC<Props> = ({
         }
         .industrial-upload-btn:hover { border-color: ${dmsTheme.colors.primary} !important; background: #fff !important; }
 
-        /* PREVIEW AREA */
         .preview-container { 
           margin-top: 15px; 
           max-height: 280px; 
           overflow-y: auto; 
           padding: 12px;
-          background: #0f172a; /* Dark background for tactical feel */
+          background: #0f172a; 
           border: 1px solid #1e293b;
           border-radius: 6px;
         }
         
         .preview-card-tactical { position: relative; background: #1e293b; padding: 3px; border: 1px solid #334155; transition: 0.3s; border-radius: 4px; overflow: hidden; }
-        .preview-card-tactical:hover { border-color: ${dmsTheme.colors.accent}; transform: translateY(-2px); }
-        
         .preview-overlay { position: absolute; top: 5px; right: 5px; opacity: 0; transition: 0.2s; z-index: 10; }
         .preview-card-tactical:hover .preview-overlay { opacity: 1; }
         
@@ -242,15 +260,20 @@ export const DokumentasiModal: React.FC<Props> = ({
         }
 
         .preview-footer { font-size: 8px; padding: 4px; background: #1e293b; color: #94a3b8; font-weight: 700; white-space: nowrap; overflow: hidden; }
-        
         .empty-staging { text-align: center; padding: 40px; color: #475569; font-size: 10px; font-weight: 800; letter-spacing: 2px; }
 
-        /* FOOTER BUTTONS */
-        .form-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 30px; padding: 20px 24px; background: #f8fafc; border-top: 1px solid ${dmsTheme.colors.border}; margin-left: -24px; margin-right: -24px; }
-        .btn-cancel { font-weight: 700 !important; height: 40px !important; border: 1px solid ${dmsTheme.colors.border} !important; }
-        .btn-submit { font-weight: 800 !important; height: 40px !important; padding: 0 25px !important; }
+        .form-footer { 
+          display: flex; 
+          justify-content: flex-end; 
+          gap: 12px; 
+          margin-top: 30px; 
+          padding: 20px 24px; 
+          background: #f8fafc; 
+          border-top: 1px solid ${dmsTheme.colors.border}; 
+          margin-left: -24px; 
+          margin-right: -24px; 
+        }
         
-        /* SCROLLBAR */
         .preview-container::-webkit-scrollbar { width: 4px; }
         .preview-container::-webkit-scrollbar-thumb { background: ${dmsTheme.colors.primary}; border-radius: 10px; }
       `}</style>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Space, Input, message, Form, ConfigProvider, 
-  Typography, Button, Tag, Popconfirm, Tooltip, Modal
+  Typography, Button, Popconfirm, Tooltip, Modal
 } from 'antd';
 import { BsFileEarmarkPdf, BsFileEarmarkWord, BsEye } from "react-icons/bs";
 import { 
@@ -15,7 +15,7 @@ import { CiViewTimeline } from "react-icons/ci";
 import dayjs from 'dayjs';
 import type { TableProps } from 'antd';
 
-// Imports
+// Imports internal
 import { dmsTheme } from '@/styles/dms.theme'; 
 import { ILaporan, IFile } from '@/types/laporan';
 import { FormInput } from '../FormInput/FormInput'; 
@@ -47,20 +47,28 @@ export const LaporanSection: React.FC = () => {
   const [viewerLaporan, setViewerLaporan] = useState<ILaporan | null>(null);
   const [exporting, setExporting] = useState(false);
 
+  // Helper akses Electron API dari Preload Script
+  const electronAPI = (window as any).electron;
+
   // --- CORE FUNCTIONS (API) ---
+
   const fetchLaporan = useCallback(async () => {
+    if (!electronAPI) return;
     setTableLoading(true);
     try {
-      const data = await (window as any).api.getLaporan();
+      const data = await electronAPI.invoke('laporan:getAll');
       if (data) setLaporanList(data);
     } catch (err) {
+      console.error("Fetch Error:", err);
       message.error('SYSTEM_ERROR: Gagal memuat database');
     } finally {
       setTableLoading(false);
     }
-  }, []);
+  }, [electronAPI]);
 
-  useEffect(() => { fetchLaporan(); }, [fetchLaporan]);
+  useEffect(() => { 
+    fetchLaporan(); 
+  }, [fetchLaporan]);
 
   const handleAdd = () => {
     setEditingLaporan(null);
@@ -80,6 +88,7 @@ export const LaporanSection: React.FC = () => {
   };
 
   const onFinishLaporan = async (values: any) => {
+    if (!electronAPI) return;
     setLoading(true);
     try {
       const payload = {
@@ -90,11 +99,11 @@ export const LaporanSection: React.FC = () => {
       };
 
       if (editingLaporan) {
-        await (window as any).api.updateLaporan({ id_laporan: editingLaporan.id_laporan, ...payload });
-        message.success('SYSTEM_UPDATE: Data berhasil diperbarui');
+        await electronAPI.invoke('laporan:update', { id_laporan: editingLaporan.id_laporan, ...payload });
+        message.success('SYSTEM_UPDATE: Data diperbarui');
       } else {
-        await (window as any).api.createLaporan(payload);
-        message.success('SYSTEM_REGISTRY: Laporan baru terdaftar');
+        await electronAPI.invoke('laporan:create', payload);
+        message.success('SYSTEM_REGISTRY: Laporan terdaftar');
       }
       
       setIsInputModalVisible(false);
@@ -109,20 +118,20 @@ export const LaporanSection: React.FC = () => {
   };
 
   const onFinishDokumentasi = async (values: any) => {
-    if (!selectedLaporan) return;
+    if (!selectedLaporan || !electronAPI) return;
     if (rawFiles.length === 0) {
       message.warning('Pilih minimal satu file asset');
       return;
     }
     setLoading(true);
     try {
-      const response = await (window as any).api.saveDokumentasi({
+      const response = await electronAPI.invoke('laporan:saveDokumentasi', {
         id_laporan: selectedLaporan.id_laporan,
         nama_dokumentasi: values.nama_dokumentasi,
         files: rawFiles.map(f => ({ path: f.path, name: f.name }))
       });
       if (response.success) {
-        message.success('ASSETS_DEPLOYED: Dokumentasi berhasil disimpan');
+        message.success('ASSETS_DEPLOYED: Dokumentasi disimpan');
         setIsModalOpen(false);
         setRawFiles([]);
         dokForm.resetFields();
@@ -135,39 +144,67 @@ export const LaporanSection: React.FC = () => {
     }
   };
 
-  const handleExportPDF = async (laporan: ILaporan) => {
-    if (!laporan || exporting) return;
-    setExporting(true);
-    const hide = message.loading(`GENERATING_PDF: ${laporan.nama_laporan}...`, 0);
-    try {
-      const dokumentasi = await (window as any).api.getDokumentasiByLaporan(laporan.id_laporan);
-      if (!dokumentasi || dokumentasi.length === 0) {
-        message.warning('DATA_VOID: Tidak ada foto untuk PDF');
-        return;
-      }
-      await (window as any).api.exportPdf(laporan, dokumentasi);
-      message.success('PDF_EXPORT_SUCCESS');
-    } catch (err) {
-      message.error('PDF_EXPORT_FAILED');
-    } finally { hide(); setExporting(false); }
-  };
+  // --- EXPORT HANDLERS ---
+const handleExportWord = async (laporan: ILaporan) => {
+    if (!laporan || exporting || !electronAPI) return;
 
-  const handleExportWord = async (laporan: ILaporan) => {
-    if (!laporan || exporting) return;
     setExporting(true);
-    const hide = message.loading(`Assembling report for ${laporan.nama_laporan}...`, 0);
+    const statusKey = 'export_status';
+    message.loading({ content: `GENERATING_WORD: ${laporan.nama_laporan}...`, key: statusKey });
+    
     try {
-      const dokumentasi = await (window as any).api.getDokumentasiByLaporan(laporan.id_laporan);
+      const dokumentasi = await electronAPI.invoke('laporan:getDokumentasiByLaporan', laporan.id_laporan);
+      
       if (!dokumentasi || dokumentasi.length === 0) {
-        message.warning('EMPTY_ASSETS: Tidak ada foto untuk diexport');
+        message.warning({ content: 'Tidak ada foto untuk di-export', key: statusKey });
+        setExporting(false);
         return;
       }
-      await (window as any).api.exportWord(laporan, dokumentasi);
-      message.success('EXPORT_COMPLETE: File disimpan di Desktop');
+
+      const filePath = await electronAPI.invoke('laporan:exportWord', laporan, dokumentasi);
+      
+      if (filePath) {
+        message.success({ content: 'Word Berhasil Disimpan di Desktop', key: statusKey, duration: 3 });
+      }
     } catch (err) {
-      message.error('EXPORT_CRITICAL_ERROR');
-    } finally { hide(); setExporting(false); }
+      console.error(err);
+      message.error({ content: 'Gagal Export Word', key: statusKey });
+    } finally { 
+      setExporting(false); 
+    }
   };
+const handleExportPDF = async (laporan: ILaporan) => {
+    if (!laporan || exporting || !electronAPI) return;
+    
+    setExporting(true);
+    const statusKey = 'export_status';
+    message.loading({ content: `GENERATING_PDF: ${laporan.nama_laporan}...`, key: statusKey });
+    
+    try {
+      // 1. Ambil data dokumentasi (yang sekarang sudah include rawPath dari IPC)
+      const dokumentasi = await electronAPI.invoke('laporan:getDokumentasiByLaporan', laporan.id_laporan);
+      
+      if (!dokumentasi || dokumentasi.length === 0) {
+        message.warning({ content: 'Tidak ada foto untuk di-export', key: statusKey });
+        setExporting(false);
+        return;
+      }
+
+      // 2. Eksekusi Export
+      // Note: Di IPC kita cuma butuh (laporan, dokumentasi)
+      const filePath = await electronAPI.invoke('laporan:exportPdf', laporan, dokumentasi);
+      
+      if (filePath) {
+        message.success({ content: `PDF Berhasil Disimpan di Desktop`, key: statusKey, duration: 3 });
+      }
+    } catch (err) {
+      console.error(err);
+      message.error({ content: 'Gagal Export PDF', key: statusKey });
+    } finally { 
+      setExporting(false); 
+    }
+  };
+  // --- UI HELPERS ---
 
   const filteredData = useMemo(() => {
     if (!searchText) return laporanList;
@@ -199,34 +236,34 @@ export const LaporanSection: React.FC = () => {
   const columns: TableProps<ILaporan>['columns'] = [
     { 
       title: 'REF', 
-      render: (_, __, i) => <div style={localStyles.idxBadge}>{(i + 1).toString().padStart(3, '0')}</div>, 
+      render: (_, __, i) => <div style={localStyles.idxBadge as any}>{(i + 1).toString().padStart(3, '0')}</div>, 
       width: 60, align: 'center' 
     },
     { 
-      title: 'PROJECT NAME', 
+      title: 'Nama Laporan', 
       dataIndex: 'nama_laporan', 
       render: (text) => (
-        <div style={localStyles.projectNameContainer}>
-          <Text strong style={localStyles.projectNameMain}>{text}</Text>
-          <Text style={localStyles.projectNameSub}>DMS_STABLE_VERSION</Text>
+        <div style={localStyles.projectNameContainer as any}>
+          <Text strong style={localStyles.projectNameMain as any}>{text}</Text>
+          <Text style={localStyles.projectNameSub as any}>DMS DOC FILE</Text>
         </div>
       )
     },
     { 
-      title: 'DATE', 
+      title: 'Tgl Laporan', 
       dataIndex: 'tgl_laporan', 
       width: 120,
       render: (date) => (
         <Space size={6}>
           <AiOutlineCalendar style={{ color: '#94a3b8' }} />
-          <Text style={localStyles.dateText}>{date ? dayjs(date).format('DD/MM/YYYY') : '-'}</Text>
+          <Text style={localStyles.dateText as any}>{date ? dayjs(date).format('DD/MM/YYYY') : '-'}</Text>
         </Space>
       )
     },
-    { title: 'PROGRESS', dataIndex: 'progress', width: 140, render: (t) => renderStatus(t) },
-    { title: 'STATUS', dataIndex: 'tahap', width: 130, render: (t) => renderStatus(t) },
+    { title: 'Progress', dataIndex: 'progress', width: 140, render: (t) => renderStatus(t) },
+    { title: 'Status', dataIndex: 'tahap', width: 130, render: (t) => renderStatus(t) },
     { 
-      title: 'ASSETS', 
+      title: 'Dokumentasi', 
       dataIndex: 'jumlah_dok', 
       align: 'center', 
       width: 80,
@@ -234,25 +271,48 @@ export const LaporanSection: React.FC = () => {
         <Text style={{ 
           fontWeight: 900, fontFamily: dmsTheme.fonts.code, 
           color: val > 0 ? dmsTheme.colors.status.success : '#cbd5e1', fontSize: '14px'
-        }}>{val || 0}</Text>
+        } as any}>{val || 0}</Text>
       )
     },
     { 
-      title: 'CONTROL CENTER', 
+      title: 'Options', 
       key: 'action', width: 260, align: 'center',
       render: (_, record) => (
         <Space size={4}>
-          <Tooltip title="Preview"><Button className="action-btn-industrial" icon={<BsEye />} onClick={() => { setViewerLaporan(record); setViewerOpen(true); }} /></Tooltip>
-          <Tooltip title="Export Word"><Button className="action-btn-industrial" icon={<BsFileEarmarkWord />} onClick={() => handleExportWord(record)} style={{ color: '#2b579a' }} disabled={exporting} /></Tooltip>
-          <Tooltip title="Export PDF"><Button className="action-btn-industrial" icon={<BsFileEarmarkPdf />} onClick={() => handleExportPDF(record)} style={{ color: dmsTheme.colors.status.danger }} disabled={exporting} /></Tooltip>
-          <Tooltip title="Upload Assets"><Button className="action-btn-industrial" icon={<AiOutlineCloudUpload />} onClick={() => { setSelectedLaporan(record); setIsModalOpen(true); }} style={{ color: '#059669' }} /></Tooltip>
-          <Tooltip title="Edit Record"><Button className="action-btn-industrial" icon={<AiOutlineEdit />} onClick={() => handleEdit(record)} style={{ color: dmsTheme.colors.accent }} /></Tooltip>
+          <Tooltip title="Preview">
+            <Button className="action-btn-industrial" icon={<BsEye />} onClick={() => { setViewerLaporan(record); setViewerOpen(true); }} />
+          </Tooltip>
+          <Tooltip title="Export Word">
+            <Button 
+              className="action-btn-industrial" 
+              icon={exporting ? <AiOutlineLoading3Quarters className="anticon-spin" /> : <BsFileEarmarkWord />} 
+              onClick={() => handleExportWord(record)} 
+              style={{ color: '#2b579a' }} 
+              disabled={exporting} 
+            />
+          </Tooltip>
+          <Tooltip title="Export PDF">
+            <Button 
+              className="action-btn-industrial" 
+              icon={exporting ? <AiOutlineLoading3Quarters className="anticon-spin" /> : <BsFileEarmarkPdf />} 
+              onClick={() => handleExportPDF(record)} 
+              style={{ color: dmsTheme.colors.status.danger }} 
+              disabled={exporting} 
+            />
+          </Tooltip>
+          <Tooltip title="Upload Assets">
+            <Button className="action-btn-industrial" icon={<AiOutlineCloudUpload />} onClick={() => { setSelectedLaporan(record); setIsModalOpen(true); }} style={{ color: '#059669' }} />
+          </Tooltip>
+          <Tooltip title="Edit Record">
+            <Button className="action-btn-industrial" icon={<AiOutlineEdit />} onClick={() => handleEdit(record)} style={{ color: dmsTheme.colors.accent }} />
+          </Tooltip>
           <Popconfirm 
             title="Hapus Laporan?"
             onConfirm={async () => {
+              if (!electronAPI) return;
               const hide = message.loading('EXECUTING_DELETE...', 0);
               try {
-                const result = await (window as any).api.deleteLaporan(record.id_laporan);
+                const result = await electronAPI.invoke('laporan:delete', record.id_laporan);
                 hide();
                 if (result) { message.success('DATA_DELETED'); fetchLaporan(); }
               } catch (error) { hide(); message.error('DELETE_FAILED'); }
@@ -268,7 +328,7 @@ export const LaporanSection: React.FC = () => {
 
   return (
     <ConfigProvider theme={{ token: { borderRadius: 10, colorPrimary: dmsTheme.colors.primary, fontFamily: dmsTheme.fonts.main } }}>
-      <div style={localStyles.container}>
+      <div style={localStyles.container as any}>
         <style>{globalComponentStyles}</style>
 
         <Modal
@@ -320,14 +380,14 @@ export const LaporanSection: React.FC = () => {
                 placeholder="Search records..." 
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
-                style={localStyles.searchBar}
+                style={localStyles.searchBar as any}
                 allowClear
               />
               <Button 
                 type="primary" 
                 icon={<AiOutlinePlus />} 
                 onClick={handleAdd}
-                style={localStyles.addButton}
+                style={localStyles.addButton as any}
               >
                 ADD_REPORT
               </Button>
@@ -335,12 +395,24 @@ export const LaporanSection: React.FC = () => {
           }
         />
 
-        <DokumentasiViewerModal open={viewerOpen} laporan={viewerLaporan} onClose={() => setViewerOpen(false)} onRefresh={fetchLaporan} />
+        <DokumentasiViewerModal
+            open={viewerOpen} 
+            laporan={viewerLaporan} 
+            onClose={() => setViewerOpen(false)} 
+            onRefresh={fetchLaporan} 
+             zIndex={1900} 
+        />
+
         <DokumentasiModal 
-          visible={isModalOpen} laporan={selectedLaporan} 
-          rawFiles={rawFiles} setRawFiles={setRawFiles} loading={loading} 
+          visible={isModalOpen} 
+          laporan={selectedLaporan} 
+          rawFiles={rawFiles} 
+          setRawFiles={setRawFiles} 
+          loading={loading} 
           onCancel={() => { setIsModalOpen(false); setRawFiles([]); dokForm.resetFields(); }} 
-          onSubmit={onFinishDokumentasi} form={dokForm} 
+          onSubmit={onFinishDokumentasi} 
+          form={dokForm} 
+          zIndex={90000000} 
         />
       </div>
     </ConfigProvider>

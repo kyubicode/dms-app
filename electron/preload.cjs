@@ -1,7 +1,9 @@
 // preload.js
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('api', {
+contextBridge.exposeInMainWorld('electron', {
+  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+  send: (channel, data) => ipcRenderer.send(channel, data),
   // --- KUNCI REAL-TIME: Tambahkan ini agar React bisa dengerin sinyal ---
   on: (channel, callback) => {
     const subscription = (event, ...args) => callback(...args);
@@ -9,24 +11,38 @@ contextBridge.exposeInMainWorld('api', {
     // Kita return fungsi buat unsubscribe biar gak memory leak
     return () => ipcRenderer.removeListener(channel, subscription);
   },
-  
+
   // Helper manual jika ingin remove listener spesifik
   removeListener: (channel, callback) => {
     ipcRenderer.removeAllListeners(channel);
   },
   //
+ // 1. Sesuaikan dengan Backend: ipcMain.on('window-control')
   sendWindowControl: (action) => ipcRenderer.send('window-control', action),
-  isMaximized: () => ipcRenderer.invoke('is-window-maximized'),
-  getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+
+  // 2. Sesuaikan dengan Backend: ipcMain.handle('window:isMaximized') 
+  // atau 'is-window-maximized' (Pastikan di backend namanya sama)
+  isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+
+  // 3. Sesuaikan dengan SystemMonitor.tsx yang memanggil 'system:get-gpu-usage'
+  getGpuUsage: () => ipcRenderer.invoke('system:get-gpu-usage'),
+
+  // 4. Sesuaikan dengan HomeSection.tsx yang memanggil 'dashboard:get-stats'
   getDashboardStats: () => ipcRenderer.invoke('dashboard:get-stats'),
-  getGpuUsage: () => ipcRenderer.invoke('get-gpu-usage'),
+
+  // 5. Sesuaikan dengan handler 'get-system-info' di backend
+  getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  
+  // 6. Jika React memanggil 'app:get-sys-info', pastikan di sini ada:
+  getAppSysInfo: () => ipcRenderer.invoke('app:get-sys-info'),
+
+  getAppName: () => ipcRenderer.invoke('get-app-name'),
   //progresss open app
   onSplashProgress: (callback) => {
     // Kita bungkus agar callback menerima data (value) langsung dari event
     ipcRenderer.on('splash-progress', (event, value) => callback(value));
   },
-  // Sistem Info
-  getAppName: () => ipcRenderer.invoke('get-app-name'),
+ 
   
 // AUTH & USER MANAGEMENT API
   login: (u, p) => ipcRenderer.invoke('auth:login', { username: u, password: p }),
@@ -39,12 +55,12 @@ contextBridge.exposeInMainWorld('api', {
   dbBackup: () => ipcRenderer.invoke('db:backup'),
   // Fungsi untuk cek kesehatan, jumlah tabel, dan ukuran file dms.db
   dbCheckStatus: () => ipcRenderer.invoke('db:check-status'),
+// Update juga fungsi execute (gate security) untuk mengizinkan execute-sql
   execute: (channel, data) => {
-    // Daftar channel yang diizinkan (Security Gate)
     const validChannels = [
       'auth:get-audit-logs',
       'db:get-audit-logs', 
-      'db:execute-sql', 
+      'db:execute-sql', // Ganti dari db:execute jika ada
       'db:backup', 
       'db:check-status',
       'db:clear-logs',
@@ -55,10 +71,15 @@ contextBridge.exposeInMainWorld('api', {
     return Promise.reject(new Error(`Unauthorized IPC channel: ${channel}`));
   },
   // Fungsi CRUD User yang dipanggil di UsersSection
+  // Ambil User
   getUsers: () => ipcRenderer.invoke('auth:get-all-users'),
+  // Register (Tambah)
   registerUser: (userData) => ipcRenderer.invoke('auth:register', userData),
-  deleteUser: (id) => ipcRenderer.invoke('auth:delete-user', id),
+  // Update (HATI-HATI: Backend kamu menggunakan 'update-user' tanpa prefix 'auth:')
   updateUser: (data) => ipcRenderer.invoke('update-user', data),
+  // Delete
+  deleteUser: (id) => ipcRenderer.invoke('auth:delete-user', id),
+  // Avatar
   selectAvatar: () => ipcRenderer.invoke('auth:select-avatar'),
   // Laporan API
   createLaporan: (data) => ipcRenderer.invoke('laporan:create', data),
@@ -76,9 +97,17 @@ contextBridge.exposeInMainWorld('api', {
     deleteDokumentasi: (id_laporan, nama_dokumentasi) =>
     ipcRenderer.invoke('laporan:deleteDokumentasi', id_laporan, nama_dokumentasi),
   renameDokumentasi: (id_laporan, oldName, newName) => ipcRenderer.invoke('laporan:renameDokumentasi', id_laporan, oldName, newName),
+
+// Export API (Pastikan handler-nya ada di exportManager.cjs)
+  exportWord: (laporan, dokumentasi) => ipcRenderer.invoke('laporan:exportWord', laporan, dokumentasi),
+  exportPdf: (laporan, dokumentasi) => ipcRenderer.invoke('laporan:exportPdf', laporan, dokumentasi),
+});
+
+
+/*
   // Tambahkan di object exposeInMainWorld 'api'
   exportWord: (laporan, dokumentasi) =>ipcRenderer.invoke('laporan:exportWord', laporan, dokumentasi),
 // 2. TAMBAHKAN INI UNTUK PDF
   exportPdf: (laporan, dokumentasi) => 
     ipcRenderer.invoke('laporan:exportPdf', laporan, dokumentasi),
-});
+*/

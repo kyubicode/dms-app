@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Typography, Row, Col, Space, Card, Progress, Divider } from 'antd';
+import { Typography, Row, Col, Space, Card, Progress } from 'antd';
 import { motion } from 'framer-motion';
 import dayjs from 'dayjs';
 
@@ -17,7 +17,7 @@ import {
 import { s, globalAnimations } from './HomeSection.styles';
 import { SystemMonitor } from '../SystemMonitor/SystemMonitor'; 
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 // --- INTERFACE ---
 interface HomeSectionProps {
@@ -51,31 +51,54 @@ const LogLine = ({ text, type, delay }: { text: string; type: 'success' | 'info'
 
 export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, sysInfo }) => {
   const { user } = useAuthStore();
-  const [currentTime, setCurrentTime] = useState(dayjs());
   const [liveStats, setLiveStats] = useState(initialStats);
 
+  // --- FUNGSI AMBIL DATA (RE-SYNC) ---
   const fetchLatestStats = useCallback(async () => {
     try {
-      const freshData = await (window as any).api.getDashboardStats();
-      setLiveStats(freshData);
+      const electronAPI = (window as any).electron;
+      if (electronAPI) {
+        const freshData = await electronAPI.invoke('dashboard:get-stats');
+        console.log("📥 HomeSection Received Stats:", freshData);
+        if (freshData) {
+          setLiveStats(freshData);
+        }
+      }
     } catch (error) { 
-      console.error("Sync Error:", error); 
+      console.error("❌ Sync Error in HomeSection:", error); 
     }
   }, []);
 
+  // --- EFFECT 1: INITIAL FETCH & IPC LISTENER ---
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(dayjs()), 1000);
-    const removeListener = (window as any).api.on('data-refresh-trigger', fetchLatestStats);
+    // Ambil data pas pertama kali render
+    fetchLatestStats();
+
+    const electronAPI = (window as any).electron;
+    let removeListener: (() => void) | undefined;
+
+    if (electronAPI && electronAPI.on) {
+      // Dengerin sinyal refresh dari backend jika ada perubahan database
+      removeListener = electronAPI.on('data-refresh-trigger', () => {
+        console.log("🔄 Auto Refresh Triggered");
+        fetchLatestStats();
+      });
+    }
+
     return () => { 
-      clearInterval(timer); 
       if (removeListener) removeListener(); 
     };
   }, [fetchLatestStats]);
 
+  // --- EFFECT 2: SYNC DENGAN PROPS PARENT ---
   useEffect(() => { 
-    setLiveStats(initialStats); 
+    // Hanya update jika initialStats ada isinya (mencegah overwrite 0 saat loading)
+    if (initialStats && (initialStats.totalLaporan > 0 || initialStats.totalFoto > 0)) {
+        setLiveStats(initialStats); 
+    }
   }, [initialStats]);
 
+  // Mapping data untuk tampilan
   const displayStats = {
     laporan: liveStats?.totalLaporan ?? 0,
     foto: liveStats?.totalFoto ?? 0,
@@ -94,7 +117,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, s
   return (
     <div style={{ padding: '12px 0' }}>
       <style>{globalAnimations}</style>
-      {/* --- 2. DYNAMIC SYSTEM MONITOR SECTION (NOW ON TOP) --- */}
+
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -104,7 +127,6 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, s
         <SystemMonitor />
       </motion.div>
 
-      {/* --- 3. STATS GRID SECTION --- */}
       <Row gutter={[20, 20]} style={{ marginBottom: '24px' }}>
         {cards.map((item, idx) => (
           <Col xs={24} sm={12} lg={8} key={idx}>
@@ -114,20 +136,20 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, s
               animate={{ opacity: 1, y: 0 }} 
               transition={{ delay: 0.2 + (idx * 0.1) }}
             >
-              <Card style={{ ...s.cleanCard, border: `1px solid ${dmsTheme.colors.border}` }} bordered={false}>
+              <Card style={{ ...s.cleanCard, border: `1px solid ${dmsTheme.colors.border}` } as any} bordered={false}>
                 <Row align="middle" gutter={16}>
                   <Col flex="auto">
-                    <Text style={s.cardLabel}>{item.label.toUpperCase()}</Text>
-                    <motion.div key={item.value} initial={{ scale: 1.1 }} animate={{ scale: 1 }} style={s.cardValue}>
+                    <Text style={s.cardLabel as any}>{item.label.toUpperCase()}</Text>
+                    <motion.div key={item.value} initial={{ scale: 1.1 }} animate={{ scale: 1 }} style={s.cardValue as any}>
                       {item.value}
                     </motion.div>
                     <Space size={6} style={{ marginTop: 4 }}>
                       <VscPulse style={{ color: item.color }} />
-                      <Text style={s.cardSub}>{item.sub}</Text>
+                      <Text style={s.cardSub as any}>{item.sub}</Text>
                     </Space>
                   </Col>
                   <Col>
-                    <div style={{ ...s.iconCircle, color: item.color, background: `${item.color}12` }}>
+                    <div style={{ ...s.iconCircle, color: item.color, background: `${item.color}12` } as any}>
                       {item.icon}
                     </div>
                   </Col>
@@ -145,14 +167,13 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, s
         ))}
       </Row>
 
-      {/* --- 4. TERMINAL DIAGNOSTICS SECTION --- */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8 }}
-        style={{ ...s.terminalWrapper, background: '#00162E', borderColor: dmsTheme.colors.primary }}
+        style={{ ...s.terminalWrapper, background: '#00162E', borderColor: dmsTheme.colors.primary } as any}
       >
-        <div style={{ ...s.terminalHeader, background: dmsTheme.colors.primary }}>
+        <div style={{ ...s.terminalHeader, background: dmsTheme.colors.primary } as any}>
           <div style={{ display: 'flex', gap: '6px', marginRight: '16px' }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff5f56' }} />
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ffbd2e' }} />
@@ -162,7 +183,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, s
             SYSTEM_DIAGNOSTICS.LOG
           </Text>
         </div>
-        <div style={s.terminalContent}>
+        <div style={s.terminalContent as any}>
           <LogLine type="success" text={`Authenticated as: ${user?.username}`} delay={0.9} />
           <LogLine type="info" text={`Storage link established: ${displayStats.laporan} records verified.`} delay={1.0} />
           <LogLine type="trace" text={`Hardware_Pool: ${sysInfo?.cpu || 'Detecting...'}`} delay={1.1} />
@@ -170,7 +191,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, s
           <motion.div 
             animate={{ opacity: [1, 0] }} 
             transition={{ repeat: Infinity, duration: 0.8 }} 
-            style={{ ...s.cursor, background: dmsTheme.colors.accent }} 
+            style={{ ...s.cursor, background: dmsTheme.colors.accent } as any} 
           />
         </div>
       </motion.div>
