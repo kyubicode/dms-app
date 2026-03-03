@@ -33,7 +33,6 @@ const { registerAuthHandlers } = safeRequire('handlers/auth.ipc.cjs');
 const { registerLaporanHandlers } = safeRequire('handlers/laporan.ipc.cjs');
 const { registerWindowHandlers } = safeRequire('handlers/window.ipc.cjs');
 const settingsManager = safeRequire('services/settingsManager.cjs');
-// exportManager SUDAH DIHAPUS KARENA LOGIKANYA PINDAH KE LAPORAN.IPC.CJS
 
 let mainWindow;
 let splashWindow;
@@ -59,7 +58,7 @@ function createWindows() {
             preload: preloadPath, 
             contextIsolation: true, 
             nodeIntegration: false,
-            webSecurity: false // Untuk merender file:// dari folder AppData
+            webSecurity: false 
         }
     });
 
@@ -74,23 +73,26 @@ function createWindows() {
 
 async function initializeApp() {
     try {
-         //const db = registerDatabaseHandlers(ipcMain); 
         sendSplashProgress(20, 'Initializing Database...');
-        // 1. Ambil instance DB dari service
+        
+        // --- POIN VITAL 1: Ambil ONE AND ONLY instance DB ---
         const dbInstance = registerDatabaseHandlers(ipcMain);
-        registerWindowHandlers(ipcMain, mainWindow, dbInstance);
+
         sendSplashProgress(40, 'Configuring Services...');
-        // Inisialisasi Settings Manager
+        
+        // --- POIN VITAL 2: Suntikkan dbInstance ke semua module yang butuh ---
+        registerWindowHandlers(ipcMain, mainWindow, dbInstance);
+        
         if (settingsManager && settingsManager.init) {
-            settingsManager.init(ipcMain); 
+            settingsManager.init(ipcMain, dbInstance); 
         }
-        // --- PERBAIKAN: exportManager.init DIHAPUS DARI SINI ---
-        // Karena logikanya sudah menyatu di registerLaporanHandlers
+
         sendSplashProgress(70, 'Mounting System Handlers...');
-        registerAppHandlers(ipcMain);
-        registerAuthHandlers(ipcMain); 
-        // Memanggil handler laporan yang berisi logika Export Word/PDF utuh
-        registerLaporanHandlers(); 
+        
+        // Pastikan fungsi-fungsi di bawah ini sudah diupdate untuk menerima (ipcMain, db)
+        registerAppHandlers(ipcMain, dbInstance);
+        registerAuthHandlers(ipcMain, dbInstance); 
+        registerLaporanHandlers(ipcMain, dbInstance); // Dashboard akan sinkron sekarang!
         
         sendSplashProgress(90, 'Preparing Interface...');
         await new Promise(r => setTimeout(r, 800)); 

@@ -92,7 +92,7 @@ const TitleBar: React.FC = () => {
       <div className="brand-section-right">
         <div className="brand-text-industrial">
           <span className="version-tag">{import.meta.env.VITE_APP_VERSION || '2.0.0'}</span>
-          <span className="main-label">{import.meta.env.VITE_APP_NAME || 'ZenTE'}</span>
+          <span className="main-label">{import.meta.env.VITE_APP_NAME || 'DStheme engine'}</span>
           <div className="icon-wrapper-industrial">
             <IoLogoElectron />
           </div>

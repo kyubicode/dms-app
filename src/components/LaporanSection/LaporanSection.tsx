@@ -26,7 +26,6 @@ import { localStyles, globalComponentStyles } from './LaporanSection.style';
 
 const { Text } = Typography;
 
-// Notifikasi Config
 message.config({ top: 45, duration: 3, maxCount: 3 });
 
 export const LaporanSection: React.FC = () => {
@@ -47,11 +46,9 @@ export const LaporanSection: React.FC = () => {
   const [viewerLaporan, setViewerLaporan] = useState<ILaporan | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  // Helper akses Electron API dari Preload Script
   const electronAPI = (window as any).electron;
 
-  // --- CORE FUNCTIONS (API) ---
-
+  // --- CORE FUNCTIONS ---
   const fetchLaporan = useCallback(async () => {
     if (!electronAPI) return;
     setTableLoading(true);
@@ -66,9 +63,7 @@ export const LaporanSection: React.FC = () => {
     }
   }, [electronAPI]);
 
-  useEffect(() => { 
-    fetchLaporan(); 
-  }, [fetchLaporan]);
+  useEffect(() => { fetchLaporan(); }, [fetchLaporan]);
 
   const handleAdd = () => {
     setEditingLaporan(null);
@@ -110,11 +105,7 @@ export const LaporanSection: React.FC = () => {
       form.resetFields();
       setEditingLaporan(null);
       fetchLaporan();
-    } catch (err) { 
-      message.error('EXECUTION_FAILED'); 
-    } finally { 
-      setLoading(false); 
-    }
+    } catch (err) { message.error('EXECUTION_FAILED'); } finally { setLoading(false); }
   };
 
   const onFinishDokumentasi = async (values: any) => {
@@ -137,74 +128,68 @@ export const LaporanSection: React.FC = () => {
         dokForm.resetFields();
         fetchLaporan();
       }
-    } catch (err: any) {
-      message.error(`UPLOAD_FAILED: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { message.error(`UPLOAD_FAILED: ${err.message}`); } finally { setLoading(false); }
   };
 
-  // --- EXPORT HANDLERS ---
-const handleExportWord = async (laporan: ILaporan) => {
+  const handleExportWord = async (laporan: ILaporan) => {
     if (!laporan || exporting || !electronAPI) return;
-
     setExporting(true);
     const statusKey = 'export_status';
     message.loading({ content: `GENERATING_WORD: ${laporan.nama_laporan}...`, key: statusKey });
-    
     try {
       const dokumentasi = await electronAPI.invoke('laporan:getDokumentasiByLaporan', laporan.id_laporan);
-      
       if (!dokumentasi || dokumentasi.length === 0) {
         message.warning({ content: 'Tidak ada foto untuk di-export', key: statusKey });
         setExporting(false);
         return;
       }
-
       const filePath = await electronAPI.invoke('laporan:exportWord', laporan, dokumentasi);
-      
-      if (filePath) {
-        message.success({ content: 'Word Berhasil Disimpan di Desktop', key: statusKey, duration: 3 });
-      }
-    } catch (err) {
-      console.error(err);
-      message.error({ content: 'Gagal Export Word', key: statusKey });
-    } finally { 
-      setExporting(false); 
-    }
+      if (filePath) message.success({ content: 'Word Berhasil Disimpan', key: statusKey, duration: 3 });
+    } catch (err) { message.error({ content: 'Gagal Export Word', key: statusKey }); } finally { setExporting(false); }
   };
-const handleExportPDF = async (laporan: ILaporan) => {
+
+  const handleExportPDF = async (laporan: ILaporan) => {
     if (!laporan || exporting || !electronAPI) return;
-    
     setExporting(true);
     const statusKey = 'export_status';
     message.loading({ content: `GENERATING_PDF: ${laporan.nama_laporan}...`, key: statusKey });
-    
     try {
-      // 1. Ambil data dokumentasi (yang sekarang sudah include rawPath dari IPC)
       const dokumentasi = await electronAPI.invoke('laporan:getDokumentasiByLaporan', laporan.id_laporan);
-      
       if (!dokumentasi || dokumentasi.length === 0) {
         message.warning({ content: 'Tidak ada foto untuk di-export', key: statusKey });
         setExporting(false);
         return;
       }
-
-      // 2. Eksekusi Export
-      // Note: Di IPC kita cuma butuh (laporan, dokumentasi)
       const filePath = await electronAPI.invoke('laporan:exportPdf', laporan, dokumentasi);
-      
-      if (filePath) {
-        message.success({ content: `PDF Berhasil Disimpan di Desktop`, key: statusKey, duration: 3 });
-      }
-    } catch (err) {
-      console.error(err);
-      message.error({ content: 'Gagal Export PDF', key: statusKey });
-    } finally { 
-      setExporting(false); 
-    }
+      if (filePath) message.success({ content: `PDF Berhasil Disimpan`, key: statusKey, duration: 3 });
+    } catch (err) { message.error({ content: 'Gagal Export PDF', key: statusKey }); } finally { setExporting(false); }
   };
-  // --- UI HELPERS ---
+
+  // --- LOGIKA WARNA DINAMIS ---
+  const renderStatus = (val: string, type: 'progress' | 'tahap' = 'progress') => {
+    const s = val?.toLowerCase();
+    let config = { bg: '#F8FAFC', dot: '#94A3B8', text: '#475569' }; // Default (Grey)
+
+    if (type === 'progress') {
+      if (s === 'selesai') config = { bg: '#F0FDF4', dot: '#22C55E', text: '#166534' }; // Green
+      else if (s === 'pengerjaan') config = { bg: '#EFF6FF', dot: '#3B82F6', text: '#1E40AF' }; // Blue
+      else if (s === 'persiapan') config = { bg: '#FFF7ED', dot: '#F97316', text: '#9A3412' }; // Orange
+    } else {
+      // Warna berbeda untuk kolom TAHAP jika ingin dibedakan
+      config = { bg: '#F1F5F9', dot: '#64748B', text: '#334155' };
+    }
+
+    return (
+      <div style={{
+        background: config.bg, color: config.text, padding: '4px 12px', borderRadius: '6px',
+        fontSize: '10px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px',
+        border: `1px solid ${config.dot}20`
+      }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: config.dot }} />
+        {val?.toUpperCase() || 'N/A'}
+      </div>
+    );
+  }
 
   const filteredData = useMemo(() => {
     if (!searchText) return laporanList;
@@ -214,28 +199,9 @@ const handleExportPDF = async (laporan: ILaporan) => {
     );
   }, [laporanList, searchText]);
 
-  const renderStatus = (val: string) => {
-    const s = val?.toLowerCase();
-    const config = s === 'selesai' 
-      ? { bg: '#F0FDF4', dot: '#22C55E', text: '#166534' } 
-      : s === 'pengerjaan' 
-      ? { bg: '#EFF6FF', dot: '#3B82F6', text: '#1E40AF' }
-      : { bg: '#F8FAFC', dot: '#94A3B8', text: '#475569' };
-
-    return (
-      <div style={{
-        background: config.bg, color: config.text, padding: '2px 10px', borderRadius: '12px',
-        fontSize: '10px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px'
-      }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: config.dot }} />
-        {val?.toUpperCase() || 'GENERAL'}
-      </div>
-    );
-  }
-
   const columns: TableProps<ILaporan>['columns'] = [
     { 
-      title: 'REF', 
+      title: 'DOC ID', 
       render: (_, __, i) => <div style={localStyles.idxBadge as any}>{(i + 1).toString().padStart(3, '0')}</div>, 
       width: 60, align: 'center' 
     },
@@ -245,7 +211,7 @@ const handleExportPDF = async (laporan: ILaporan) => {
       render: (text) => (
         <div style={localStyles.projectNameContainer as any}>
           <Text strong style={localStyles.projectNameMain as any}>{text}</Text>
-          <Text style={localStyles.projectNameSub as any}>DMS DOC FILE</Text>
+          <Text style={localStyles.projectNameSub as any}>DMS PROJECT</Text>
         </div>
       )
     },
@@ -260,8 +226,18 @@ const handleExportPDF = async (laporan: ILaporan) => {
         </Space>
       )
     },
-    { title: 'Progress', dataIndex: 'progress', width: 140, render: (t) => renderStatus(t) },
-    { title: 'Status', dataIndex: 'tahap', width: 130, render: (t) => renderStatus(t) },
+    { 
+        title: 'Progress', 
+        dataIndex: 'progress', 
+        width: 140, 
+        render: (t) => renderStatus(t, 'progress') 
+    },
+    { 
+        title: 'Tahap', 
+        dataIndex: 'tahap', 
+        width: 130, 
+        render: (t) => renderStatus(t, 'tahap') 
+    },
     { 
       title: 'Dokumentasi', 
       dataIndex: 'jumlah_dok', 
@@ -327,7 +303,20 @@ const handleExportPDF = async (laporan: ILaporan) => {
   ];
 
   return (
-    <ConfigProvider theme={{ token: { borderRadius: 10, colorPrimary: dmsTheme.colors.primary, fontFamily: dmsTheme.fonts.main } }}>
+    <ConfigProvider 
+      theme={{ 
+        token: { 
+          borderRadius: 12,
+          colorPrimary: '#007aff', 
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
+        },
+        components: {
+          Button: { controlHeight: 34, fontWeight: 500, borderRadius: 6 },
+          Input: { controlHeight: 34, colorBgContainer: 'rgba(0, 0, 0, 0.04)' },
+          Table: { borderRadius: 0, headerBg: '#fafafa', headerColor: '#86868b' }
+        }
+      }}
+    >
       <div style={localStyles.container as any}>
         <style>{globalComponentStyles}</style>
 
@@ -338,6 +327,7 @@ const handleExportPDF = async (laporan: ILaporan) => {
           width={900}
           destroyOnClose
           centered
+          className="mac-modal" 
         >
           <FormInput 
             form={form} 
@@ -374,9 +364,9 @@ const handleExportPDF = async (laporan: ILaporan) => {
           loading={tableLoading}
           rowKey="id_laporan"
           extra={
-            <Space>
+            <Space size={12}>
               <Input 
-                prefix={<AiOutlineSearch style={{ color: '#94a3b8' }} />} 
+                prefix={<AiOutlineSearch style={{ color: '#86868b' }} />} 
                 placeholder="Search records..." 
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
@@ -389,7 +379,7 @@ const handleExportPDF = async (laporan: ILaporan) => {
                 onClick={handleAdd}
                 style={localStyles.addButton as any}
               >
-                ADD_REPORT
+                TAMBAH LAPORAN
               </Button>
             </Space>
           }
@@ -400,7 +390,7 @@ const handleExportPDF = async (laporan: ILaporan) => {
             laporan={viewerLaporan} 
             onClose={() => setViewerOpen(false)} 
             onRefresh={fetchLaporan} 
-             zIndex={1900} 
+            zIndex={1900} 
         />
 
         <DokumentasiModal 
@@ -412,7 +402,7 @@ const handleExportPDF = async (laporan: ILaporan) => {
           onCancel={() => { setIsModalOpen(false); setRawFiles([]); dokForm.resetFields(); }} 
           onSubmit={onFinishDokumentasi} 
           form={dokForm} 
-          zIndex={90000000} 
+          zIndex={1900} 
         />
       </div>
     </ConfigProvider>

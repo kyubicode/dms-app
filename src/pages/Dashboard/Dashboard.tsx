@@ -29,33 +29,40 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({ totalLaporan: 0, totalFoto: 0, totalAlbum: 0 });
   const [sysInfo, setSysInfo] = useState<any>(undefined);
   
-  useEffect(() => {
-    const fetchBackendData = async () => {
-      try {
-        /** * PERBAIKAN: Menggunakan window.electron
-         * Pastikan handler 'dashboard:get-stats' dan 'app:get-sys-info' (atau sejenisnya)
-         * sudah terdaftar di main process.
-         */
-        const electronAPI = (window as any).electron;
+// Dashboard.tsx
 
-        if (electronAPI) {
-          const [resStats, resSys] = await Promise.all([
-            electronAPI.invoke('dashboard:get-stats'), // Menggunakan invoke agar lebih aman
-            electronAPI.invoke('app:get-sys-info')
-          ]);
-          
-          if (resStats) setStats(resStats);
-          if (resSys) setSysInfo(resSys);
-        }
-      } catch (err) { 
-        console.error("Dashboard Fetch Error:", err); 
-      } finally {
-        // Berikan sedikit delay agar transisi LoadingScreen terasa smooth
-        setTimeout(() => setIsInitialLoading(false), 800);
+// Dashboard.tsx
+useEffect(() => {
+  const fetchBackendData = async () => {
+    try {
+      const electronAPI = (window as any).electron;
+      if (!electronAPI) return;
+
+      // Ambil data
+      const [resStats, resSys] = await Promise.all([
+        electronAPI.getDashboardStats(),
+        electronAPI.getAppSysInfo()
+      ]);
+      
+      console.log("📥 Dashboard Main Fetch:", resStats);
+      
+      if (resStats) {
+        setStats({
+          totalLaporan: Number(resStats.totalLaporan || 0),
+          totalFoto: Number(resStats.totalFoto || 0),
+          totalAlbum: Number(resStats.totalAlbum || resStats.totalDokumentasi || 0)
+        });
       }
-    };
-    fetchBackendData();
-  }, []);
+      if (resSys) setSysInfo(resSys);
+    } catch (err) { 
+      console.error("Dashboard Fetch Error:", err); 
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
+
+  fetchBackendData();
+}, []);
 
   const handleTabChange = (key: string) => {
     if (key !== activeTab) setActiveTab(key);
@@ -122,7 +129,7 @@ export default function Dashboard() {
                     fontFamily: dmsTheme.fonts.code,
                     letterSpacing: '-1.5px'
                   }}>
-                    ZenTE
+                   {import.meta.env.VITE_APP_NAME || 'DStheme engine'}
                   </span>
                   <span style={{ color: '#cbd5e1', fontSize: '20px', fontWeight: 300 }}>/</span>
                   <span style={{ 
@@ -136,7 +143,7 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <Text style={s.metaTextAccent as any}>
-                  {sysInfo?.platform?.toUpperCase() || 'STATION_ACTIVE'} // V.2.0.1
+                  {sysInfo?.platform?.toUpperCase() || 'SCREEN ACTIVE'} {import.meta.env.VITE_APP_VERSION || '2.0.0'}
                 </Text>
               </div>
             </div>

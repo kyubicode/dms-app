@@ -187,6 +187,7 @@ export const SettingsSection: React.FC = () => {
 
         <Modal
           title="SYSTEM AUDIT TRAIL" 
+           className="dark-terminal-modal"
           open={isAuditLogOpen} onCancel={() => setIsAuditLogOpen(false)}
           width="92vw" footer={null} centered destroyOnClose zIndex={9999}
           styles={{ body: { padding: 0, height: '80vh', backgroundColor: '#ffffff' } }}>

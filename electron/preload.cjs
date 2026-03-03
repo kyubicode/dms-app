@@ -64,6 +64,7 @@ contextBridge.exposeInMainWorld('electron', {
       'db:backup', 
       'db:check-status',
       'db:clear-logs',
+      'dashboard:get-stats',
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);

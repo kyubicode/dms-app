@@ -42,7 +42,7 @@ export const DokumentasiModal: React.FC<Props> = ({
     if (!uid) return;
     const filtered = rawFiles.filter(f => f.uid !== uid);
     setRawFiles(filtered);
-    message.info('DATA_REMOVED_FROM_QUEUE');
+    message.info('DATA REMOVED FROM QUEUE');
   };
 
   return (
@@ -83,7 +83,7 @@ export const DokumentasiModal: React.FC<Props> = ({
                 letterSpacing: '2px',
                 fontFamily: dmsTheme.fonts.code 
               }}>
-                ARCHIVE_SYSTEM // NEW_ENTRY
+                ARCHIVE SYSTEM // NEW ENTRY
               </Text>
             </Space>
             <Title level={4} style={{ margin: 0, fontWeight: 800, textTransform: 'uppercase', color: dmsTheme.colors.text.primary }}>
@@ -107,7 +107,7 @@ export const DokumentasiModal: React.FC<Props> = ({
             name="nama_dokumentasi"
             label={
               <Text className="industrial-label" style={{ fontFamily: dmsTheme.fonts.code }}>
-                01 // FOLDER_DESIGNATION / LABEL
+                01 // FOLDER DESIGNATION / LABEL
               </Text>
             }
             rules={[{ required: true, message: 'Label wajib diisi' }]}
@@ -121,7 +121,7 @@ export const DokumentasiModal: React.FC<Props> = ({
           <Form.Item 
             label={
               <Text className="industrial-label" style={{ fontFamily: dmsTheme.fonts.code }}>
-                02 // MEDIA_ASSETS (MULTIPLE_SELECT)
+                02 // MEDIA ASSETS (MULTIPLE_SELECT)
               </Text>
             }
           >
@@ -131,7 +131,7 @@ export const DokumentasiModal: React.FC<Props> = ({
               icon={<HiOutlineCloudArrowUp size={20} />}
               onClick={async () => {
                 if (!electronAPI) {
-                  message.error('ELECTRON_API_NOT_FOUND');
+                  message.error('ELECTRON API NOT_FOUND');
                   return;
                 }
                 const files: IFile[] = await electronAPI.invoke('select-files');
@@ -141,11 +141,11 @@ export const DokumentasiModal: React.FC<Props> = ({
                     uid: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}` 
                   }));
                   setRawFiles([...rawFiles, ...filesWithUid]);
-                  message.success(`${files.length} ASSETS_STAGED`);
+                  message.success(`${files.length} ASSETS STAGED`);
                 }
               }}
             >
-              SELECT FILES FROM LOCAL_STORAGE
+              PILIH FILE DARI DISK
             </Button>
 
             <div className="preview-container">
@@ -179,7 +179,7 @@ export const DokumentasiModal: React.FC<Props> = ({
                     <div className="empty-staging">
                       <HiOutlineDocumentPlus size={32} style={{ opacity: 0.2, marginBottom: 8 }} />
                       <br />
-                      <span style={{ fontFamily: dmsTheme.fonts.code }}>WAITING_FOR_MEDIA_INPUT...</span>
+                      <span style={{ fontFamily: dmsTheme.fonts.code }}>MENUNGGU FOTO / FILE</span>
                     </div>
                   </Col>
                 )}
@@ -193,7 +193,7 @@ export const DokumentasiModal: React.FC<Props> = ({
               className="btn-cancel"
               style={{ borderRadius: 4 }}
             >
-              ABORT_MISSION
+              BATAL
             </Button>
             <Button
               type="primary"
@@ -207,7 +207,7 @@ export const DokumentasiModal: React.FC<Props> = ({
                 borderRadius: 4
               }}
             >
-              EXECUTE_COMMIT_TO_DATABASE
+              SIMPAN KE DATABASE
             </Button>
           </div>
         </Form>

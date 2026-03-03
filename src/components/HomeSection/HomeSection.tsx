@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { Typography, Row, Col, Space, Card, Progress } from 'antd';
 import { motion } from 'framer-motion';
-import dayjs from 'dayjs';
 
 // Assets & Stores
 import { useAuthStore } from '@/stores/auth.store';
@@ -21,7 +20,12 @@ const { Text } = Typography;
 
 // --- INTERFACE ---
 interface HomeSectionProps {
-  stats: any; 
+  stats: {
+    totalLaporan: number;
+    totalFoto: number;
+    totalAlbum?: number;
+    totalDokumentasi?: number;
+  }; 
   sysInfo?: any;
 }
 
@@ -49,75 +53,31 @@ const LogLine = ({ text, type, delay }: { text: string; type: 'success' | 'info'
   );
 };
 
-export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, sysInfo }) => {
+export const HomeSection: React.FC<HomeSectionProps> = ({ stats, sysInfo }) => {
   const { user } = useAuthStore();
-  const [liveStats, setLiveStats] = useState(initialStats);
 
-  // --- FUNGSI AMBIL DATA (RE-SYNC) ---
-  const fetchLatestStats = useCallback(async () => {
-    try {
-      const electronAPI = (window as any).electron;
-      if (electronAPI) {
-        const freshData = await electronAPI.invoke('dashboard:get-stats');
-        console.log("📥 HomeSection Received Stats:", freshData);
-        if (freshData) {
-          setLiveStats(freshData);
-        }
-      }
-    } catch (error) { 
-      console.error("❌ Sync Error in HomeSection:", error); 
-    }
-  }, []);
+  // --- MAPPING DATA DARI PROPS ---
+  // Memastikan data selalu sinkron dengan Dashboard.tsx tanpa state tambahan
+  const displayStats = useMemo(() => ({
+    laporan: stats?.totalLaporan ?? 0,
+    foto: stats?.totalFoto ?? 0,
+    album: stats?.totalAlbum || stats?.totalDokumentasi || 0 
+  }), [stats]);
 
-  // --- EFFECT 1: INITIAL FETCH & IPC LISTENER ---
-  useEffect(() => {
-    // Ambil data pas pertama kali render
-    fetchLatestStats();
-
-    const electronAPI = (window as any).electron;
-    let removeListener: (() => void) | undefined;
-
-    if (electronAPI && electronAPI.on) {
-      // Dengerin sinyal refresh dari backend jika ada perubahan database
-      removeListener = electronAPI.on('data-refresh-trigger', () => {
-        console.log("🔄 Auto Refresh Triggered");
-        fetchLatestStats();
-      });
-    }
-
-    return () => { 
-      if (removeListener) removeListener(); 
-    };
-  }, [fetchLatestStats]);
-
-  // --- EFFECT 2: SYNC DENGAN PROPS PARENT ---
-  useEffect(() => { 
-    // Hanya update jika initialStats ada isinya (mencegah overwrite 0 saat loading)
-    if (initialStats && (initialStats.totalLaporan > 0 || initialStats.totalFoto > 0)) {
-        setLiveStats(initialStats); 
-    }
-  }, [initialStats]);
-
-  // Mapping data untuk tampilan
-  const displayStats = {
-    laporan: liveStats?.totalLaporan ?? 0,
-    foto: liveStats?.totalFoto ?? 0,
-    album: liveStats?.totalAlbum ?? 0
-  };
-
-  const cards = [
+  const cards = useMemo(() => [
     { label: 'Total Projects', value: displayStats.laporan, icon: <HiOutlineFolderOpen />, color: dmsTheme.colors.status.info, sub: 'Verified Records' },
     { label: 'Storage Assets', value: displayStats.foto, icon: <AiOutlineDatabase />, color: dmsTheme.colors.status.success, sub: `${displayStats.album} Albums Indexed` },
     { label: 'Processor', value: sysInfo?.cpu?.split('@')[0] || 'Core Node', icon: <HiOutlineCpuChip />, color: '#6366f1', sub: sysInfo?.arch || 'x64 Architecture' },
     { label: 'Platform', value: sysInfo?.platform?.toUpperCase() || 'STABLE', icon: <HiOutlineRocketLaunch />, color: dmsTheme.colors.accent, sub: `Build ${sysInfo?.version || 'Stable'}` },
     { label: 'Memory Pool', value: sysInfo?.totalMemory || '16GB', icon: <HiOutlineSquare3Stack3D />, color: '#ec4899', sub: 'Optimized Cache' },
     { label: 'Data Latency', value: '0.02ms', icon: <AiOutlineCloudServer />, color: '#14b8a6', sub: 'Stable Link' },
-  ];
+  ], [displayStats, sysInfo]);
 
   return (
     <div style={{ padding: '12px 0' }}>
       <style>{globalAnimations}</style>
 
+      {/* Monitor Animasi Sistem */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -127,6 +87,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, s
         <SystemMonitor />
       </motion.div>
 
+      {/* Dashboard Cards Grid */}
       <Row gutter={[20, 20]} style={{ marginBottom: '24px' }}>
         {cards.map((item, idx) => (
           <Col xs={24} sm={12} lg={8} key={idx}>
@@ -134,13 +95,18 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, s
               whileHover={{ y: -4 }} 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
-              transition={{ delay: 0.2 + (idx * 0.1) }}
+              transition={{ delay: 0.1 + (idx * 0.05) }}
             >
               <Card style={{ ...s.cleanCard, border: `1px solid ${dmsTheme.colors.border}` } as any} bordered={false}>
                 <Row align="middle" gutter={16}>
                   <Col flex="auto">
                     <Text style={s.cardLabel as any}>{item.label.toUpperCase()}</Text>
-                    <motion.div key={item.value} initial={{ scale: 1.1 }} animate={{ scale: 1 }} style={s.cardValue as any}>
+                    <motion.div 
+                      key={item.value} 
+                      initial={{ scale: 1.1, opacity: 0.5 }} 
+                      animate={{ scale: 1, opacity: 1 }} 
+                      style={s.cardValue as any}
+                    >
                       {item.value}
                     </motion.div>
                     <Space size={6} style={{ marginTop: 4 }}>
@@ -167,10 +133,11 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, s
         ))}
       </Row>
 
+      {/* Terminal Diagnostics Section */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
+        transition={{ delay: 0.5 }}
         style={{ ...s.terminalWrapper, background: '#00162E', borderColor: dmsTheme.colors.primary } as any}
       >
         <div style={{ ...s.terminalHeader, background: dmsTheme.colors.primary } as any}>
@@ -184,10 +151,10 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ stats: initialStats, s
           </Text>
         </div>
         <div style={s.terminalContent as any}>
-          <LogLine type="success" text={`Authenticated as: ${user?.username}`} delay={0.9} />
-          <LogLine type="info" text={`Storage link established: ${displayStats.laporan} records verified.`} delay={1.0} />
-          <LogLine type="trace" text={`Hardware_Pool: ${sysInfo?.cpu || 'Detecting...'}`} delay={1.1} />
-          <LogLine type="trace" text={`Platform_Registry: ${sysInfo?.platform || 'NodeJS'} | ${sysInfo?.arch || 'x64'}`} delay={1.2} />
+          <LogLine type="success" text={`Authenticated as: ${user?.username}`} delay={0.6} />
+          <LogLine type="info" text={`Storage link established: ${displayStats.laporan} records verified.`} delay={0.7} />
+          <LogLine type="trace" text={`Hardware_Pool: ${sysInfo?.cpu || 'Detecting...'}`} delay={0.8} />
+          <LogLine type="trace" text={`Platform_Registry: ${sysInfo?.platform || 'NodeJS'} | ${sysInfo?.arch || 'x64'}`} delay={0.9} />
           <motion.div 
             animate={{ opacity: [1, 0] }} 
             transition={{ repeat: Infinity, duration: 0.8 }} 

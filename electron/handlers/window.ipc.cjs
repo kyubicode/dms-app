@@ -73,32 +73,6 @@ function registerWindowHandlers(ipcMain, mainWindow, db) {
     cpu: cachedHardware.cpuBrand
   }));
 
-  // --- KUNCI UTAMA: Handler Dashboard Stats ---
-// --- Di dalam registerWindowHandlers ---
-ipcMain.handle('dashboard:get-stats', async () => {
-  try {
-    if (!db) {
-      console.error("❌ DB Instance Null di window.ipc");
-      return { totalLaporan: 0, totalAlbum: 0, totalFoto: 0 };
-    }
-
-    const laporan = db.prepare("SELECT COUNT(*) as count FROM laporan").get();
-    const album = db.prepare("SELECT COUNT(*) as count FROM dokumentasi").get();
-    const foto = db.prepare("SELECT COUNT(*) as count FROM table_foto").get();
-
-    const data = {
-      totalLaporan: laporan?.count || 0,
-      totalAlbum: album?.count || 0, 
-      totalFoto: foto?.count || 0
-    };
-
-    console.log("📊 DATABASE CHECK:", data); // LIAT DI TERMINAL VS CODE
-    return data;
-  } catch (err) {
-    console.error("❌ SQL Error Dashboard:", err.message);
-    return { totalLaporan: 0, totalAlbum: 0, totalFoto: 0 };
-  }
-});
 
 }
 

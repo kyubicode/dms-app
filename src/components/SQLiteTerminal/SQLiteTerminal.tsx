@@ -14,7 +14,7 @@ export interface SQLiteTerminalProps {
 
 export const SQLiteTerminal: React.FC<SQLiteTerminalProps> = ({ isMaximized }) => {
   const [lines, setLines] = useState<{ text: string; type: string }[]>([
-    { text: `ZenTE Core System - Terminal Active [v2.0.6]`, type: 'info' },
+    { text: `DS Core System - Terminal Active ${import.meta.env.VITE_APP_VERSION || '2.0.0'}`, type: 'info' },
     { text: 'SQL Engine Ready. (Try "SHOW TABLES" or "STATUS")', type: 'warn' },
   ]);
   const [input, setInput] = useState('');
