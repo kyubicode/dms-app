@@ -224,15 +224,46 @@ function registerLaporanHandlers() {
     return db.prepare('DELETE FROM table_foto WHERE path_foto = ?').run(rawPath);
   });
 
-  ipcMain.handle('laporan:deleteDokumentasi', async (event, id_dokumentasi) => {
-    const album = db.prepare('SELECT d.nama_dokumentasi, l.nama_laporan FROM dokumentasi d JOIN laporan l ON d.id_laporan = l.id_laporan WHERE d.id_dokumentasi = ?').get(id_dokumentasi);
-    if (album) {
-      const folderPath = path.join(uploaderPath, sanitize(album.nama_laporan), sanitize(album.nama_dokumentasi));
-      if (fs.existsSync(folderPath)) fs.rmSync(folderPath, { recursive: true, force: true });
+ipcMain.handle('laporan:deleteDokumentasi', async (event, id_dokumentasi) => {
+  try {
+    // 1. Ambil info album & folder
+    const album = db.prepare(`
+      SELECT d.nama_dokumentasi, l.nama_laporan 
+      FROM dokumentasi d 
+      JOIN laporan l ON d.id_laporan = l.id_laporan 
+      WHERE d.id_dokumentasi = ?
+    `).get(id_dokumentasi);
+
+    if (!album) return { success: false, message: "Album tidak ditemukan" };
+
+    const folderPath = path.join(uploaderPath, sanitize(album.nama_laporan), sanitize(album.nama_dokumentasi));
+
+    // 2. Gunakan Transaction untuk Database
+    const deleteTx = db.transaction(() => {
+      // Hapus foto-fotonya dulu (Foreign Key friendly)
+      db.prepare('DELETE FROM table_foto WHERE id_dokumentasi = ?').run(id_dokumentasi);
+      // Hapus albumnya
+      db.prepare('DELETE FROM dokumentasi WHERE id_dokumentasi = ?').run(id_dokumentasi);
+    });
+
+    deleteTx(); // Jalankan hapus database
+
+    // 3. Hapus folder fisik (Try-catch terpisah agar tidak membatalkan status database)
+    try {
+      if (fs.existsSync(folderPath)) {
+        fs.rmSync(folderPath, { recursive: true, force: true });
+      }
+    } catch (fsErr) {
+      console.error("Folder fisik gagal dihapus (mungkin terkunci), tapi data DB sudah terhapus:", fsErr);
+      // Kita tetap return true karena yang terpenting datanya hilang dari UI/Tabel
     }
-    db.prepare('DELETE FROM table_foto WHERE id_dokumentasi = ?').run(id_dokumentasi);
-    return db.prepare('DELETE FROM dokumentasi WHERE id_dokumentasi = ?').run(id_dokumentasi);
-  });
+
+    return { success: true };
+  } catch (e) {
+    console.error("Backend Error:", e);
+    return { success: false, message: e.message };
+  }
+});
 
   // --- EXPORT PDF (FIXED GRID TABLE SYSTEM) ---
 ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {

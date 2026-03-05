@@ -5,7 +5,7 @@ export const localStyles: Record<string, React.CSSProperties> = {
     background: '#fff', 
     border: '1px solid #e2e8f0', 
     borderRadius: '20px', 
-    minHeight: '88vh', 
+    //minHeight: '88vh', 
     overflow: 'hidden',
     boxShadow: '0 4px 24px rgba(0,0,0,0.04)' 
   },
@@ -63,11 +63,11 @@ export const globalSettingsCss = `
   }
 
   .settings-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
-    color: #38bdf8 !important;
+    color:rgb(0, 69, 99) !important;
   }
 
   .settings-tabs .ant-tabs-ink-bar {
-    background: #38bdf8 !important;
+    background:rgb(248, 56, 75) !important;
     height: 3px !important;
     border-radius: 3px 3px 0 0;
   }
@@ -82,9 +82,9 @@ export const globalSettingsCss = `
   .dark-terminal-modal .ant-modal-content {
     background-color: #0d1117 !important;
     background-clip: border-box !important;
-    border: 1px solid #30363d !important;
-    border-radius: 12px !important;
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7) !important;
+    border: 0px solid #30363d !important;
+    border-radius: 0px !important;
+    box-shadow: 0 12px 48px rgba(255, 0, 0, 0.7) !important;
     padding: 0 !important; /* Menghilangkan padding putih di sekitar terminal */
     overflow: hidden;
   }

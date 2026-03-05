@@ -10,7 +10,7 @@ import {
   AiOutlineFontColors, AiOutlineFilePdf, AiOutlineDatabase,
   AiOutlineSetting, AiOutlineDashboard
 } from 'react-icons/ai';
-
+import { GrDocumentText,GrDocumentConfig  } from "react-icons/gr";
 import { AuditLogViewer } from '../AuditLogViewer/AuditLogViewer';
 import { RoleGuard } from '../Guards/RoleGuard';
 import { SQLiteTerminal } from '../SQLiteTerminal/SQLiteTerminal';
@@ -76,10 +76,10 @@ export const SettingsSection: React.FC = () => {
       <Row gutter={[64, 0]}>
         <Col span={12}>
           <Divider orientation={"left" as any} plain>
-            <Text strong style={localStyles.dividerText}>TATA LETAK HALAMAN LAPORAN</Text>
+            <Text strong style={localStyles.dividerText}>TATA LETAK DOKUMEN LAPORAN</Text>
           </Divider>
           <SettingItem 
-            icon={<AiOutlineFilePdf />} label="Ukuran Kertas" desc="Format standar PDF ekspor."
+            icon={<GrDocumentText />} label="Ukuran Kertas" desc="Format standar PDF ekspor."
             extra={<Select value={layout.pageSize} onChange={(v) => updateLayout({ pageSize: v })} style={{ width: 160 }} options={[{value:'a4', label:'A4 Standard'}, {value:'legal', label:'Legal'}]} />}
           />
           <SettingItem 
@@ -133,7 +133,7 @@ export const SettingsSection: React.FC = () => {
   );
 
   const tabItems = [
-    { key: 'document', label: <span style={localStyles.tabLabel}><AiOutlineFilePdf /> Dokumen</span>, children: renderDocumentTab() },
+    { key: 'document', label: <span style={localStyles.tabLabel}><GrDocumentConfig /> Dokumen</span>, children: renderDocumentTab() },
     { key: 'database', label: <span style={localStyles.tabLabel}><AiOutlineDatabase /> Database</span>, children: (
         <div style={localStyles.tabContent}>
           <div style={localStyles.actionBox}>

@@ -45,7 +45,7 @@ export const s = createStyles({
     width: '100%' 
   },
   mainContent: { 
-    marginTop: '150px', // Jarak aman agar tidak tertutup header
+    marginTop: '100px', // Jarak aman agar tidak tertutup header
     flex: 1, 
     paddingBottom: '60px',
     width: '100%',
@@ -53,8 +53,41 @@ export const s = createStyles({
     marginLeft: 'auto',
     marginRight: 'auto'
   },
-  breadcrumbArea: { 
-    padding: '0 40px 24px 40px' 
+breadcrumbArea: { 
+    padding: '16px 0px 16px 50px',
+  },
+  breadcrumbFlex: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '20px' 
+  },
+  titleColumn: { 
+    display: 'flex', 
+    flexDirection: 'column' 
+  },
+  titleRow: { 
+    display: 'flex', 
+    alignItems: 'baseline', 
+    gap: '8px' 
+  },
+  appNameText: {
+    fontSize: '26px',
+    fontWeight: 900,
+    color: '#0f172a',
+    fontFamily: dmsTheme.fonts.code,
+    letterSpacing: '-1.5px',
+  },
+  slashDivider: { 
+    color: '#cbd5e1', 
+    fontSize: '20px', 
+    fontWeight: 300 
+  },
+  activeTabText: {
+    fontSize: '15px',
+    fontWeight: 600,
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
   },
   iconBox: {
     width: '44px',
@@ -70,7 +103,7 @@ export const s = createStyles({
     color: '#0f172a'
   },
   contentContainer: {
-    padding: '0 40px',
+    padding: '0 50px',
     animation: 'fadeInUp 0.4s ease-out'
   },
   metaTextAccent: {

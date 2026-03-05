@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Button, Avatar, Modal } from 'antd';
 import { IoFingerPrint } from "react-icons/io5";
 import { AiOutlinePrinter } from 'react-icons/ai';
@@ -26,6 +26,23 @@ export const PersonnelIdCard: React.FC<PersonnelIdCardProps> = ({
   onClose, 
   formatFilePath 
 }) => {
+
+  // Logic: Cek apakah user yang sedang dilihat sama dengan user yang login
+  const canPrint = useMemo(() => {
+    if (!user) return false;
+    try {
+      const storedData = localStorage.getItem('user');
+      if (storedData) {
+        const currentUser = JSON.parse(storedData);
+        // Bandingkan ID (menggunakan String() untuk keamanan tipe data)
+        return String(user.id) === String(currentUser.id);
+      }
+    } catch (e) {
+      console.error("Auth check failed:", e);
+    }
+    return false;
+  }, [user, visible]);
+
   return (
     <Modal 
       open={visible} 
@@ -101,18 +118,21 @@ export const PersonnelIdCard: React.FC<PersonnelIdCardProps> = ({
             </div>
           </div>
 
-          <div className="modal-actions-print">
-            <Button 
-              type="primary" 
-              block 
-              icon={<AiOutlinePrinter />} 
-              onClick={() => window.print()} 
-              className="btn-print"
-              style={{ background: dmsTheme.colors.primary, border: 'none' }}
-            >
-              EXECUTE HARD COPY PRINT
-            </Button>
-          </div>
+          {/* Tombol Print hanya tampil jika canPrint true */}
+          {canPrint && (
+            <div className="modal-actions-print">
+              <Button 
+                type="primary" 
+                block 
+                icon={<AiOutlinePrinter />} 
+                onClick={() => window.print()} 
+                className="btn-print"
+                style={{ background: dmsTheme.colors.primary, border: 'none' }}
+              >
+                TO HARD COPY PRINT
+              </Button>
+            </div>
+          )}
         </>
       )}
 
@@ -155,7 +175,6 @@ export const PersonnelIdCard: React.FC<PersonnelIdCardProps> = ({
         }
 
         .card-body-visual { display: flex; gap: 28px; z-index: 2; flex: 1; }
-        
         .photo-area { 
           padding: 2px; 
           background: rgba(148, 163, 184, 0.2); 
@@ -165,7 +184,6 @@ export const PersonnelIdCard: React.FC<PersonnelIdCardProps> = ({
         }
 
         .id-avatar { border-radius: 4px !important; }
-
         .info-area { flex: 1; display: flex; flex-direction: column; }
         .badge-row { display: flex; justify-content: space-between; align-items: center; }
         .role-label { 

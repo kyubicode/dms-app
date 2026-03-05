@@ -55,7 +55,7 @@ export const UsersSection: React.FC = () => {
       const data = await api.getUsers();
       setUsers(Array.isArray(data) ? data : []);
     } catch (e) { 
-      msgApi.error("SYSTEM_SYNC_ERROR"); 
+      msgApi.error("SYSTEM SYNC_ERROR"); 
     } finally {
       setLoading(false);
     }
@@ -84,11 +84,11 @@ export const UsersSection: React.FC = () => {
       const res = editingUser ? await api.updateUser(payload) : await api.registerUser(payload);
         
       if (res?.success) {
-        msgApi.success(editingUser ? 'DATA_UPDATED' : 'PERSONNEL_REGISTERED');
+        msgApi.success(editingUser ? 'DATA UPDATED' : 'PERSONNEL REGISTERED');
         setIsModalVisible(false);
         fetchUsers(true);
       } else {
-        msgApi.error(res?.message || 'TRANSACTION_REJECTED');
+        msgApi.error(res?.message || 'TRANSACTION REJECTED');
       }
     } catch (err) { msgApi.error('TRANSACTION_FAILED'); } 
     finally { setActionLoading(false); }
@@ -97,7 +97,7 @@ export const UsersSection: React.FC = () => {
   // --- TABLE COLUMNS ---
   const columns = [
     { 
-      title: 'IDX', 
+      title: 'UID', 
       render: (_: any, __: any, i: number) => (
         <div style={localStyles.idxBadge}>{(i + 1).toString().padStart(3, '0')}</div>
       ), 

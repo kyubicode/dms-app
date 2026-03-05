@@ -49,19 +49,23 @@ export const LaporanSection: React.FC = () => {
   const electronAPI = (window as any).electron;
 
   // --- CORE FUNCTIONS ---
-  const fetchLaporan = useCallback(async () => {
-    if (!electronAPI) return;
-    setTableLoading(true);
-    try {
-      const data = await electronAPI.invoke('laporan:getAll');
-      if (data) setLaporanList(data);
-    } catch (err) {
-      console.error("Fetch Error:", err);
-      message.error('SYSTEM_ERROR: Gagal memuat database');
-    } finally {
-      setTableLoading(false);
+const fetchLaporan = useCallback(async () => {
+  if (!electronAPI) return;
+  setTableLoading(true);
+  try {
+    const data = await electronAPI.invoke('laporan:getAll');
+    if (data) {
+      // Gunakan spread operator [...data] untuk memastikan referensi array baru
+      setLaporanList([...data]); 
     }
-  }, [electronAPI]);
+  } catch (err) {
+    console.error("Fetch Error:", err);
+    message.error('SYSTEM_ERROR: Gagal memuat database');
+  } finally {
+    setTableLoading(false);
+  }
+}, [electronAPI]);
+
 
   useEffect(() => { fetchLaporan(); }, [fetchLaporan]);
 
@@ -385,13 +389,16 @@ export const LaporanSection: React.FC = () => {
           }
         />
 
-        <DokumentasiViewerModal
-            open={viewerOpen} 
-            laporan={viewerLaporan} 
-            onClose={() => setViewerOpen(false)} 
-            onRefresh={fetchLaporan} 
-            zIndex={1900} 
-        />
+   <DokumentasiViewerModal
+        // TAMBAHKAN KEY: Ini memastikan modal me-reset state internalnya 
+        // setiap kali laporan yang dipilih berubah.
+        key={viewerLaporan?.id_laporan ? `viewer-${viewerLaporan.id_laporan}` : 'viewer-empty'}
+        open={viewerOpen} 
+        laporan={viewerLaporan} 
+        onClose={() => setViewerOpen(false)} 
+        onRefresh={fetchLaporan} // fetchLaporan akan dipanggil saat album dihapus/ditambah
+        zIndex={1900} 
+      />
 
         <DokumentasiModal 
           visible={isModalOpen} 

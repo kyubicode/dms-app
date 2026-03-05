@@ -2,6 +2,13 @@ import { dmsTheme } from '@/styles/dms.theme';
 
 const { colors, fonts } = dmsTheme;
 
+// Helper untuk type safety style (opsional)
+const createStyles = <T extends { [key: string]: React.CSSProperties }>(cfg: T): T => cfg;
+
+export const s = createStyles({
+  // Jika kamu ingin memindahkan style objek React ke sini di masa depan
+});
+
 export const titleBarGlobalStyles = `
   .title-bar-container-fixed {
     height: 38px !important;
@@ -41,16 +48,33 @@ export const titleBarGlobalStyles = `
     cursor: pointer;
     padding: 0;
     flex-shrink: 0;
-    display: block;
-    transition: transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    position: relative;
   }
 
+  /* Dot Colors */
   .macos-btn.close { background: #ff5f57; border: 0.5px solid #e0443e; }
   .macos-btn.minimize { background: #febc2e; border: 0.5px solid #d8a124; }
   .macos-btn.maximize { background: #28c840; border: 0.5px solid #1aab29; }
-  
-  .macos-btn:hover { transform: scale(1.1); filter: brightness(1.1); }
-  .macos-btn:active { transform: scale(0.9); }
+
+  /* Icons inside dots */
+  .control-icon {
+    font-size: 10px;
+    color: rgba(0, 0, 0, 0.6);
+    opacity: 0; /* Tersembunyi default */
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+  }
+
+  /* Show icons on hover group */
+  .macos-controls:hover .control-icon {
+    opacity: 1;
+  }
+
+  .macos-btn:active { filter: brightness(0.8); }
 
   .title-drag-area-custom {
     flex: 1;

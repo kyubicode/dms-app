@@ -28,9 +28,6 @@ export default function Dashboard() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({ totalLaporan: 0, totalFoto: 0, totalAlbum: 0 });
   const [sysInfo, setSysInfo] = useState<any>(undefined);
-  
-// Dashboard.tsx
-
 // Dashboard.tsx
 useEffect(() => {
   const fetchBackendData = async () => {
@@ -116,38 +113,23 @@ useEffect(() => {
         </div>
 
         <Content style={s.mainContent as any}>
-          <div style={s.breadcrumbArea as any}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-              <div style={s.iconBox as any}>{TabIcon}</div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                  <span style={{ 
-                    fontSize: '26px', 
-                    fontWeight: 900, 
-                    color: '#0f172a',
-                    fontFamily: dmsTheme.fonts.code,
-                    letterSpacing: '-1.5px'
-                  }}>
-                   {import.meta.env.VITE_APP_NAME || 'DStheme engine'}
-                  </span>
-                  <span style={{ color: '#cbd5e1', fontSize: '20px', fontWeight: 300 }}>/</span>
-                  <span style={{ 
-                    fontSize: '15px', 
-                    fontWeight: 600, 
-                    color: '#64748b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px'
-                  }}>
-                    {activeTab}
-                  </span>
-                </div>
-                <Text style={s.metaTextAccent as any}>
-                  {sysInfo?.platform?.toUpperCase() || 'SCREEN ACTIVE'} {import.meta.env.VITE_APP_VERSION || '2.0.0'}
-                </Text>
+          <div style={s.breadcrumbArea}>
+          <div style={s.breadcrumbFlex}>
+            <div style={s.iconBox}>{TabIcon}</div>
+            
+            <div style={s.titleColumn}>
+              <div style={s.titleRow}>
+                <span style={s.appNameText}>Window</span>
+                <span style={s.slashDivider}>/</span>
+                <span style={s.activeTabText}>{activeTab}</span>
               </div>
+              
+              <Text style={s.metaTextAccent}>
+                {sysInfo?.platform?.toUpperCase() || 'SCREEN ACTIVE'} {import.meta.env.VITE_APP_VERSION || '2.0.0'}
+              </Text>
             </div>
           </div>
+        </div>
           
           <div style={s.contentContainer as any}>
             {RenderedContent}
