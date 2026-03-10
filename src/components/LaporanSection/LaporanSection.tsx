@@ -233,7 +233,7 @@ const columns: TableProps<ILaporan>['columns'] = [
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
           <span style={{ width: '8px', height: '2px', background: dmsTheme.colors.primary, borderRadius: '2px' }} />
           <Text style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.5px' }}>
-            DMS-CORP PROJECT SYSTEM
+            DMS-LAPORAN DOKUMENTASI
           </Text>
         </div>
       </div>

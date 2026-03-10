@@ -148,7 +148,7 @@ export const DokumentasiViewerModal: React.FC<Props> = ({ open, laporan, onClose
   };
 
   return (
-    <Modal
+<Modal
       open={open}
       onCancel={onClose}
       footer={null}
@@ -156,9 +156,29 @@ export const DokumentasiViewerModal: React.FC<Props> = ({ open, laporan, onClose
       centered
       zIndex={zIndex}
       title={
-        <Space>
-          <Typography.Title level={4} style={{ margin: 0 }}>{laporan?.nama_laporan}</Typography.Title>
-          <Tag color="blue">ID: {laporan?.id_laporan}</Tag>
+        <Space size={12}>
+          <Typography.Title 
+            level={4} 
+            style={{ 
+              margin: 0, 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.5px',
+              color: '#1e293b' // Warna slate gelap agar lebih pro
+            }}
+          >
+            {laporan?.nama_laporan?.toUpperCase() || 'DATA_NOT_FOUND'}
+          </Typography.Title>
+          <Tag 
+            color="blue" 
+            style={{ 
+              fontFamily: 'monospace', // Ganti dmsTheme.fonts.code ke 'monospace' saja jika belum ada theme
+              fontWeight: 700,
+              borderRadius: '4px',
+              border: '1px solid #3b82f640'
+            }}
+          >
+            ID: {laporan?.id_laporan?.toString().padStart(3, '0') || '---'}
+          </Tag>
         </Space>
       }
     >
