@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+// PERBAIKAN: Gunakan HashRouter, bukan BrowserRouter
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import { useAuthStore } from '@/stores/auth.store';
 import LoadingScreen from '../components/Loading/LoadingScreen';
@@ -10,16 +11,17 @@ const Dashboard = lazy(() => import('../pages/Dashboard/Dashboard'));
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
+  // Karena pakai HashRouter, path akan dibaca setelah tanda # (contoh: #/login)
   const isLoginPage = location.pathname === '/login' || location.pathname === '/';
 
   return (
     <div 
       className="main-app-container"
       style={{ 
-        flex: 1, // Mengambil sisa ruang setelah TitleBar
+        flex: 1, 
         width: '100vw',
         position: 'relative',
-        overflow: isLoginPage ? 'hidden' : 'auto', // Scroll hanya di dashboard
+        overflow: isLoginPage ? 'hidden' : 'auto', 
         display: 'flex',
         flexDirection: 'column'
       }}
@@ -33,8 +35,8 @@ export default function AppRouter() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   return (
-    <BrowserRouter>
-      {/* Container utama untuk memisahkan TitleBar dan Konten */}
+    // PERBAIKAN: Ganti BrowserRouter menjadi HashRouter
+    <HashRouter>
       <div style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <TitleBar />
 
@@ -69,6 +71,6 @@ export default function AppRouter() {
           overflow: hidden !important; 
         }
       `}</style>
-    </BrowserRouter>
+    </HashRouter>
   );
 }

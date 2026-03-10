@@ -1,7 +1,7 @@
 {
   "name": "dms-apps",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "electron": "electron .",
     "rebuild": "electron-rebuild",
-    "start": "concurrently \"npm run dev\" \"npm run electron\""
+    "start": "concurrently \"npm run dev\" \"npm run electron\"",
+    "postinstall": "electron-builder install-app-deps",
+    "dist": "npm run build && electron-builder"
   },
   "dependencies": {
     "antd": "^6.2.3",
@@ -39,6 +41,7 @@
     "@vitejs/plugin-react": "^5.1.1",
     "concurrently": "^9.2.1",
     "electron": "^40.1.0",
+    "electron-builder": "^26.8.1",
     "electron-rebuild": "^3.2.9",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -51,7 +54,25 @@
   "overrides": {
     "vite": "npm:rolldown-vite@7.2.5"
   },
-  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
+  "build": {
+    "appId": "com.dms.apps",
+    "productName": "DMS-Apps",
+    "win": {
+      "target": "nsis",
+      "icon": "public/dms.ico"
+    },
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": "**/*.node"
+  },
+  "description": "DMS Application build with Electron and Vite",
   "keywords": [],
   "author": "",
   "license": "ISC"

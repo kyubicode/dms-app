@@ -166,7 +166,7 @@ export const UsersSection: React.FC = () => {
       )
     },
     { 
-      title: 'ACCESS_LEVEL', 
+      title: 'ACCESS LEVEL', 
       dataIndex: 'role', 
       width: 160,
       render: (role: string) => {
@@ -190,7 +190,7 @@ export const UsersSection: React.FC = () => {
       }
     },
     { 
-      title: 'CONTROL_INTERFACE', 
+      title: 'CONTROL INTERFACE', 
       align: 'right',
       width: 200,
       render: (r: any) => (

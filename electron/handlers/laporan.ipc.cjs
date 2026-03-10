@@ -19,7 +19,8 @@ const sanitize = (name) => {
   if (!name) return 'unnamed';
   return name.replace(/[\\/:*?"<>|]/g, '_').trim();
 };
-// INI YANG TADI HILANG: Fungsi untuk format tanggal Indonesia
+
+// Fungsi untuk format tanggal Indonesia
 const formatIndo = (dateStr) => {
   if (!dateStr || dateStr === "" || dateStr === "null") return "-";
   try {
@@ -28,6 +29,7 @@ const formatIndo = (dateStr) => {
     return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
   } catch (e) { return dateStr; }
 };
+
 const getSecurePath = (rawPath, laporanNama, albumNama) => {
   if (fs.existsSync(rawPath)) return rawPath;
   const fileName = path.basename(rawPath);

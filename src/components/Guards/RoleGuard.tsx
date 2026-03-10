@@ -52,7 +52,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
             subTitle={
               <Space direction="vertical" style={{ marginTop: 8 }}>
                 <Text type="secondary">
-                  Halaman ini memerlukan otorisasi level <Text strong>{allowedRole.toUpperCase()}</Text>
+                  Fitur ini memerlukan otorisasi level <Text strong>{allowedRole.toUpperCase()}</Text>
                 </Text>
                 <Text style={{ fontSize: 12, opacity: 0.7 }}>
                   Identitas saat ini: <Text code>{userRole.toUpperCase() || 'GUEST'}</Text>

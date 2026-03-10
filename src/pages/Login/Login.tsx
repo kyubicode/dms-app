@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Typography, Input, Button, message, ConfigProvider } from 'antd';
 import { ArrowRightOutlined } from '@ant-design/icons';
 import { RiShieldUserFill } from "react-icons/ri";
+import { FaUserLock } from "react-icons/fa6";
 import { useAuthStore } from '@/stores/auth.store';
 import LoadingScreen from '@/components/Loading/LoadingScreen';
 import { loginStyles as styles } from './Login.styles';
@@ -54,7 +55,7 @@ export default function Login() {
         <div style={styles.loginBox as any} className="mac-card-entry">
           <div style={styles.header as any}>
             <div style={styles.avatarRing as any}>
-              <div style={styles.avatarInner as any}><RiShieldUserFill /></div>
+              <div style={styles.avatarInner as any}><FaUserLock /></div>
             </div>
             <Title level={3} style={styles.mainTitle as any}>DMS SYSTEM</Title>
             <Text style={styles.subTitle as any}>Enterprise Secure Access</Text>
@@ -77,7 +78,7 @@ export default function Login() {
           </form>
 
           <div style={styles.footer as any}>
-            <Text style={{ fontSize: '10px', color: 'rgba(0,0,0,0.3)', fontWeight: 600 }}>PROTECTED BY ZEN-CORE V2</Text>
+            <Text style={{ fontSize: '10px', color: 'rgba(0,0,0,0.3)', fontWeight: 600 }}>PROTECTED BY DSEngine</Text>
           </div>
         </div>
 

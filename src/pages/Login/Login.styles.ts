@@ -24,7 +24,7 @@ export const loginStyles: Record<string, React.CSSProperties> = {
     pointerEvents: 'none'
   },
   loginBox: {
-    width: '360px',
+    width: '320px',
     padding: '35px',
     background: 'rgba(255, 255, 255, 0.65)',
     backdropFilter: 'blur(40px) saturate(200%) brightness(110%)',

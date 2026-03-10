@@ -5,11 +5,9 @@ import {
   SettingOutlined, AppstoreOutlined 
 } from '@ant-design/icons';
 import { FiUsers } from "react-icons/fi";
-
 import { injectGlobalTheme, dmsTheme } from '@/styles/dms.theme';
 import { s, globalCSS, dashboardAnimations } from './Dashboard.styles';
 import { DashboardStats } from '../../types/Dashboard.types';
-
 // Components
 import LoadingScreen from '@/components/Loading/LoadingScreen';
 import { DashboardHeader } from '../../components/DashboardHeader/DashboardHeader';

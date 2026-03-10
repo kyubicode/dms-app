@@ -63,7 +63,7 @@ export const globalComponentStyles = `
   .ant-table { background: transparent !important; }
   
   .ant-table-thead > tr > th {
-    background: rgba(255, 255, 255, 0.4) !important;
+    background: rgba(246, 0, 0, 0.4) !important;
     backdrop-filter: blur(10px);
     color: #86868b !important;
     font-size: 11px !important;
@@ -86,7 +86,7 @@ export const globalComponentStyles = `
   .action-btn-industrial { 
     width: 36px !important; 
     height: 36px !important; 
-    border-radius: 10px !important; 
+    border-radius: 50px !important; 
     background: #ffffff !important; 
     border: 1px solid rgba(0,0,0,0.08) !important; 
     display: flex; 

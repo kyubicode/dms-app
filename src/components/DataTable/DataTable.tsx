@@ -27,7 +27,7 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
         components: {
           Table: {
             fontSize: 14,
-            headerBg: 'rgba(250, 250, 252, 0.5)', 
+            headerBg: 'rgb(4, 71, 97)', 
             headerColor: '#86868b', // Warna teks tersier Apple
             headerSplitColor: 'transparent',
             cellPaddingInline: 24,
