@@ -8,6 +8,7 @@ import {
   AiOutlineLayout, AiOutlineHistory, AiOutlineReload,
   AiOutlineExpand, AiOutlineFontSize,
   AiOutlineFontColors,
+  AiOutlineLineHeight
 } from 'react-icons/ai';
 import { FcSettings  } from "react-icons/fc";
 import { GrDocumentText,} from "react-icons/gr";
@@ -35,6 +36,7 @@ export const SettingsSection: React.FC = () => {
     gap: 10, 
     gapUnit: 'mm', 
     rowGap: 15, 
+    textGap: 5,
     marginPage: 20, 
     marginPageUnit: 'mm',
     headerColor: '#1F4E78', 
@@ -124,6 +126,10 @@ export const SettingsSection: React.FC = () => {
           <SettingItem 
             icon={<AiOutlineBgColors />} label="Warna Header" desc="Warna aksen bar deskripsi." 
             extra={<ColorPicker value={layout.headerColor} onChange={(c) => updateLayout({ headerColor: c.toHexString() })} showText />} 
+          />
+          <SettingItem 
+            icon={<AiOutlineLineHeight />} label="Jarak Teks" desc="Jarak antara foto dengan deskripsi."
+            extra={<InputNumber min={0} max={20} value={layout.textGap} onChange={(v) => updateLayout({ textGap: v ?? 5 })} addonAfter="mm" />}
           />
           <SettingItem 
             icon={<AiOutlineFontColors />} label="Warna Font" desc="Warna teks utama & nama file." 

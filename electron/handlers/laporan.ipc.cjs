@@ -287,7 +287,9 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
     const cols = Math.max(1, parseInt(config.columns) || 3);
     const fixedH = Math.round(Number(config.imgHeight) || 45);
     const descSize = parseInt(config.descSize) || 8;
+    const titleSize = parseInt(config.titleSize) || 22;
     const rowGap = parseInt(config.rowGap) || 15;
+    const textGap = parseInt(config.textGap) || 5; // Integrasi variabel baru
     
     const hColor = `#${(config.headerColor || "1F4E78").replace(/[^0-9A-Fa-f]/g, '').substring(0, 6)}`;
     const fColor = `#${(config.fontColor || "333333").replace(/[^0-9A-Fa-f]/g, '').substring(0, 6)}`;
@@ -300,10 +302,10 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
     doc.setFillColor(hColor);
     doc.rect(0, 0, pageWidth, headerBlockHeight, 'F');
 
-    // Judul Utama (Nama Laporan)
+    // Judul Utama (Nama Laporan) - MENGGUNAKAN fColor & titleSize
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(parseInt(config.titleSize) || 22);
-    doc.setTextColor(fColor); // Kontras Putih untuk Header
+    doc.setFontSize(titleSize);
+    doc.setTextColor(fColor); 
     doc.text(String(laporan.nama_laporan).toUpperCase(), centerX, 18, { align: "center" });
 
     // Sub-Judul (Dari Config UI)
@@ -324,17 +326,16 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
     const cellWidth = (pageWidth - (margin * 2) - (spacing * (cols - 1))) / cols;
 
     for (const album of dokumentasi) {
-      // Check Page Break sebelum ganti album
       if (currentY > pageHeight - 40) { doc.addPage(); currentY = 20; }
 
       // --- ALBUM BAR / DESKRIPSI ---
       doc.setFillColor(hColor);
       doc.rect(margin, currentY, pageWidth - (margin * 2), 7, "F");
       
-      doc.setTextColor(fColor); // Teks putih di bar deskripsi
+      doc.setTextColor(fColor); // Mengikuti Warna Font Config
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      doc.text(` Deskripsi: ${String(album.nama_dokumentasi).toUpperCase()}`, margin + 2, currentY + 4.8);
+      doc.text(` DESKRIPSI: ${String(album.nama_dokumentasi).toUpperCase()}`, margin + 2, currentY + 4.8);
       
       currentY += 12;
 
@@ -342,8 +343,7 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
         for (let i = 0; i < album.files.length; i += cols) {
           const rowFiles = album.files.slice(i, i + cols);
           
-          // Safety Check Space
-          const requiredSpace = fixedH + rowGap; 
+          const requiredSpace = fixedH + rowGap + textGap; 
           if (currentY + requiredSpace > pageHeight - margin) {
             doc.addPage();
             currentY = 20;
@@ -363,7 +363,6 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
                 let renderW = cellWidth;
                 let renderH = cellWidth / ratio;
 
-                // Fit Image to Box
                 if (renderH > fixedH) {
                   renderH = fixedH;
                   renderW = fixedH * ratio;
@@ -372,18 +371,16 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
                 const offsetX = (cellWidth - renderW) / 2;
                 const offsetY = (fixedH - renderH) / 2;
 
-                // Border Foto (Opsional: Light Gray)
                 doc.setDrawColor(230, 230, 230);
                 doc.rect(xPos, currentY, cellWidth, fixedH, 'S');
-
                 doc.addImage(imgData, 'JPEG', xPos + offsetX, currentY + offsetY, renderW, renderH, undefined, 'FAST');
 
-                // Label Foto
+                // Label Foto - MENGGUNAKAN textGap
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(descSize);
-                doc.setTextColor(fColor); // Kembali ke warna font utama (gelap)
+                doc.setTextColor(fColor); 
                 const shortName = file.name.length > 30 ? file.name.substring(0, 27) + "..." : file.name;
-                doc.text(shortName, xPos + (cellWidth / 2), currentY + fixedH + 5, { align: "center" });
+                doc.text(shortName, xPos + (cellWidth / 2), currentY + fixedH + textGap, { align: "center" });
 
               } catch (e) { console.error("Img Render Error:", e); }
             }
@@ -392,10 +389,9 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
           currentY += fixedH + rowGap; 
         }
       }
-      currentY += 5; // Extra gap antar album
+      currentY += 5;
     }
 
-    // --- FINALIZE ---
     const saveName = `REPORT_${laporan.nama_laporan.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
     const savePath = path.join(app.getPath('desktop'), saveName);
     fs.writeFileSync(savePath, Buffer.from(doc.output("arraybuffer")));
@@ -409,12 +405,11 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
 });
 
 
-// --- EXPORT WORD (INDUSTRIAL DYNAMIC SYSTEM - SYNCED WITH PDF) ---
+// --- EXPORT WORD (INDUSTRIAL DYNAMIC SYSTEM) ---
 ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
   try {
     const config = getSettingsMap();
 
-    // 1. Sanitasi Warna & Konfigurasi (Ambil dari Config UI)
     const hColor = (config.headerColor || "1F4E78").replace(/[^0-9A-Fa-f]/g, '').substring(0, 6);
     const fColor = (config.fontColor || "333333").replace(/[^0-9A-Fa-f]/g, '').substring(0, 6);
     
@@ -422,20 +417,19 @@ ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
     const imgH_base = Math.round(Number(config.imgHeight) || 45); 
     const descSize = (parseInt(config.descSize) || 8) * 2; 
     const titleSize = (parseInt(config.titleSize) || 24) * 2;
-    // Konversi margin mm ke Twips (1mm = 56.7 twips, tapi Word standard pakai ~20 twips per unit)
     const marginTwips = (parseInt(config.marginPage) || 20) * 20; 
     const rowGapTwips = (parseInt(config.rowGap) || 15) * 20;
+    const textGapTwips = (parseInt(config.textGap) || 5) * 20; // Integrasi variabel baru
 
     const formatDate = (date) => date ? date : "-";
 
-    // --- 2. DYNAMIC HEADER BLOCK (Sama dengan Background PDF) ---
     const headerTable = new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
         new TableRow({
           children: [
             new TableCell({
-              shading: { fill: hColor }, // Background Header mengikuti config
+              shading: { fill: hColor },
               margins: { top: 400, bottom: 400, left: 200, right: 200 },
               borders: {
                 top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
@@ -445,25 +439,9 @@ ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
                 new Paragraph({
                   alignment: AlignmentType.CENTER,
                   children: [
-                    new TextRun({ 
-                      text: String(laporan.nama_laporan).toUpperCase(), 
-                      bold: true, 
-                      size: titleSize, 
-                      color: fColor // Teks Putih agar kontras dengan background
-                    }),
-                    new TextRun({ 
-                      text: `\n${config.judulLaporan || "LAPORAN DOKUMENTASI PEKERJAAN"}`, 
-                      break: 1, 
-                      size: 28, 
-                      bold: true, 
-                      color: fColor 
-                    }),
-                    new TextRun({ 
-                      text: `\nTAHAP: ${(laporan.tahap || "-").toUpperCase()}  |  PERIODE: ${formatDate(laporan.tgl_mulai || laporan.tgl_laporan)} s/d ${formatDate(laporan.tgl_selesai || laporan.tgl_laporan)}`, 
-                      break: 1, 
-                      size: 18, 
-                      color: fColor
-                    }),
+                    new TextRun({ text: String(laporan.nama_laporan).toUpperCase(), bold: true, size: titleSize, color: fColor }),
+                    new TextRun({ text: `\n${config.judulLaporan || "LAPORAN DOKUMENTASI PEKERJAAN"}`, break: 1, size: 28, bold: true, color: fColor }),
+                    new TextRun({ text: `\nTAHAP: ${(laporan.tahap || "-").toUpperCase()}  |  PERIODE: ${formatDate(laporan.tgl_mulai || laporan.tgl_laporan)} s/d ${formatDate(laporan.tgl_selesai || laporan.tgl_laporan)}`, break: 1, size: 18, color: fColor }),
                   ]
                 })
               ]
@@ -476,29 +454,20 @@ ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
 
     const docContent = [headerTable];
 
-    // --- 3. LOOP ALBUM DOKUMENTASI ---
     for (const album of dokumentasi) {
-      // SEKSI BAR (Background Warna Header)
       docContent.push(new Paragraph({
         shading: { fill: hColor }, 
         spacing: { before: 600, after: 200 },
         children: [
-          new TextRun({ 
-            text: `  Deskripsi: ${String(album.nama_dokumentasi).toUpperCase()}  `, 
-            color: fColor, 
-            bold: true, 
-            size: 22 
-          })
+          new TextRun({ text: `DESKRIPSI: ${String(album.nama_dokumentasi).toUpperCase()}  `, color: fColor, bold: true, size: 22 })
         ]
       }));
 
       const tableRows = [];
       for (let i = 0; i < (album.files || []).length; i += cols) {
         const rowFiles = album.files.slice(i, i + cols);
-        
         const rowCells = rowFiles.map(f => {
           const finalPath = getSecurePath(f.rawPath, laporan.nama_laporan, album.nama_dokumentasi);
-          
           if (finalPath && fs.existsSync(finalPath)) {
             try {
               const imgBuffer = fs.readFileSync(finalPath);
@@ -508,7 +477,6 @@ ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
                 if (dim?.width && dim?.height) ratio = dim.width / dim.height;
               } catch (e) {}
 
-              // Kalkulasi lebar gambar dinamis berdasarkan jumlah kolom
               const availableWidthPt = 500 / cols; 
               let renderW = imgH_base * ratio * 2.8; 
               let renderH = imgH_base * 2.8;
@@ -527,22 +495,15 @@ ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
                     alignment: AlignmentType.CENTER,
                     spacing: { before: 100, after: 100 },
                     children: [
-                      new ImageRun({
-                        data: imgBuffer,
-                        transformation: { width: renderW, height: renderH }
-                      })
+                      new ImageRun({ data: imgBuffer, transformation: { width: renderW, height: renderH } })
                     ]
                   }),
                   new Paragraph({
                     alignment: AlignmentType.CENTER,
-                    spacing: { after: rowGapTwips > 0 ? rowGapTwips : 240 },
+                    // Integrasi textGapTwips (jarak dari gambar) & rowGapTwips (jarak ke baris bawah)
+                    spacing: { before: textGapTwips, after: rowGapTwips }, 
                     children: [
-                      new TextRun({ 
-                        text: f.name.toUpperCase(), 
-                        size: descSize, 
-                        color: fColor,
-                        font: "Arial"
-                      })
+                      new TextRun({ text: f.name.toUpperCase(), size: descSize, color: fColor, font: "Arial" })
                     ]
                   })
                 ],
@@ -552,7 +513,6 @@ ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
           return new TableCell({ children: [new Paragraph("MISSING")] });
         });
 
-        // Fill empty cells
         while (rowCells.length < cols) {
           rowCells.push(new TableCell({ children: [], borders: BorderStyle.NONE }));
         }
@@ -566,17 +526,11 @@ ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
       }));
     }
 
-    // --- 4. FINALIZE WITH DYNAMIC MARGINS ---
     const doc = new Document({
       sections: [{
         properties: {
           page: {
-            margin: { 
-              top: marginTwips, 
-              bottom: marginTwips, 
-              left: marginTwips, 
-              right: marginTwips 
-            },
+            margin: { top: marginTwips, bottom: marginTwips, left: marginTwips, right: marginTwips },
           },
         },
         children: docContent 
@@ -586,7 +540,6 @@ ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
     const buffer = await Packer.toBuffer(doc);
     const saveName = `REPORT_WORD_${laporan.nama_laporan.replace(/\s+/g, '_')}_${Date.now()}.docx`;
     const savePath = path.join(app.getPath('desktop'), saveName);
-    
     fs.writeFileSync(savePath, buffer);
     shell.openPath(savePath);
     
