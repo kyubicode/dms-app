@@ -1,55 +1,115 @@
 import React from 'react';
 
-const MAC_COLORS = {
-  primary: '#007aff',
-  border: 'rgba(0, 0, 0, 0.1)',
-  textMain: '#1d1d1f',
-  textSecondary: '#86868b',
-};
-
 export const localStyles: Record<string, React.CSSProperties> = {
-  container: { minHeight: '100vh'},
-  idxBadge: { 
-    background: 'rgba(0, 0, 0, 0.05)', padding: '2px 8px', borderRadius: '4px', 
-    fontWeight: 600, color: MAC_COLORS.textSecondary, fontSize: '10px' 
+  container: {
+    padding: '0px',
+    animation: 'appleFadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
   },
-  projectNameContainer: { padding: '4px 0' },
-  projectNameMain: { color: MAC_COLORS.textMain, fontSize: '13px', fontWeight: 600, display: 'block' },
-  projectNameSub: { fontSize: '9px', color: MAC_COLORS.primary, fontWeight: 500, textTransform: 'uppercase' },
-  dateText: { fontSize: '11px', fontWeight: 500, color: MAC_COLORS.textMain },
-  searchBar: { width: 240, borderRadius: '8px', background: 'rgba(0, 0, 0, 0.05)', border: 'none', height: '32px' },
+  idxBadge: { 
+    background: '#ffffff', 
+    padding: '4px 10px', 
+    borderRadius: '8px', 
+    fontWeight: 700, 
+    color: '#1d1d1f', 
+    fontSize: '11px',
+    fontFamily: '"SF Mono", "Fira Code", monospace',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+    border: '1px solid rgba(0,0,0,0.03)'
+  },
+  projectNameContainer: { display: 'flex', flexDirection: 'column', gap: '2px' },
+  projectNameMain: { 
+    color: '#1d1d1f', 
+    fontSize: '14px', 
+    fontWeight: 600,
+    letterSpacing: '-0.02em'
+  },
+  projectNameSub: { 
+    fontSize: '10px', 
+    color: '#007AFF', 
+    fontWeight: 700, 
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em'
+  },
+  dateText: { 
+    fontSize: '12px', 
+    color: '#86868b', 
+    fontWeight: 500 
+  },
+  searchBar: { 
+    width: 220, 
+    borderRadius: '10px', 
+    background: '#ffffff',
+    border: '1px solid rgba(0,0,0,0.1)',
+    height: '38px' 
+  },
   addButton: { 
-    height: '32px', borderRadius: '8px', fontWeight: 500, background: MAC_COLORS.primary, 
-    border: 'none', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: '6px' 
+    height: '38px', 
+    borderRadius: '10px', 
+    fontWeight: 600, 
+    fontSize: '13px',
+    background: '#007AFF', 
+    boxShadow: '0 4px 12px rgba(0, 122, 255, 0.2)',
+    border: 'none'
   }
 };
 
 export const globalComponentStyles = `
-  .ant-table-wrapper { 
-    background: #fff !important; 
-    border-radius: 0px !important; 
-    border: 1px solid ${MAC_COLORS.border} !important;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.04) !important;
-    overflow: hidden !important; 
+  @keyframes appleFadeIn {
+    from { opacity: 0; transform: scale(0.98) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
   }
 
-  .ant-table, .ant-table-container, .ant-table-thead > tr > th {
-    border-radius: 0 !important;
-  }
-
+  /* Table Glassmorphism Sync */
+  .ant-table { background: transparent !important; }
+  
   .ant-table-thead > tr > th {
-    background: #fafafa !important;
-    color: ${MAC_COLORS.textSecondary} !important;
+    background: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(10px);
+    color: #86868b !important;
     font-size: 11px !important;
-    text-transform: uppercase !important;
-    border-bottom: 1px solid ${MAC_COLORS.border} !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid rgba(0,0,0,0.05) !important;
   }
 
+  .ant-table-tbody > tr > td {
+    border-bottom: 1px solid rgba(0,0,0,0.03) !important;
+    padding: 12px 16px !important;
+  }
+
+  .ant-table-tbody > tr:hover > td {
+    background: rgba(0, 122, 255, 0.02) !important;
+  }
+
+  /* Action Buttons Sync */
   .action-btn-industrial { 
-    width: 32px !important; height: 32px !important; display: inline-flex !important; 
-    align-items: center !important; justify-content: center !important; 
-    border-radius: 8px !important; background: #fff !important; border: 1px solid rgba(0,0,0,0.1) !important; 
+    width: 36px !important; 
+    height: 36px !important; 
+    border-radius: 10px !important; 
+    background: #ffffff !important; 
+    border: 1px solid rgba(0,0,0,0.08) !important; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    color: #424245 !important;
+  }
+  
+  .action-btn-industrial:hover { 
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.06);
+    border-color: #007AFF !important;
+    color: #007AFF !important;
   }
 
-  .mac-modal .ant-modal-content { border-radius: 14px !important; overflow: hidden !important; }
+  /* Modal Sync */
+  .mac-modal .ant-modal-content {
+    border-radius: 24px !important;
+    padding: 24px !important;
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1) !important;
+  }
 `;

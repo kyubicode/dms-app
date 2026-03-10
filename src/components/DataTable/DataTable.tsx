@@ -19,163 +19,212 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
     <ConfigProvider
       theme={{
         token: {
-          fontFamily: fonts.main,
-          borderRadius: 16, // Lebih rounded khas macOS
-          colorPrimary: '#0f172a',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif',
+          borderRadius: 20, // Lebih bulat untuk estetika 2026
+          colorPrimary: '#007AFF', // Warna aksen klasik macOS
+          colorBgContainer: '#ffffff',
         },
         components: {
           Table: {
-            fontSize: 13,
-            headerBg: 'transparent', // Header menyatu dengan bar
-            headerColor: 'rgba(15, 23, 42, 0.5)',
-            headerSplitColor: 'transparent', // Hilangkan garis pemisah header
-            cellPaddingInline: 20,
-            cellPaddingBlock: 14,
-            borderColor: 'rgba(15, 23, 42, 0.05)',
-            rowHoverBg: 'rgba(15, 23, 42, 0.03)',
+            fontSize: 14,
+            headerBg: 'rgba(250, 250, 252, 0.5)', 
+            headerColor: '#86868b', // Warna teks tersier Apple
+            headerSplitColor: 'transparent',
+            cellPaddingInline: 24,
+            cellPaddingBlock: 16,
+            borderColor: '#f5f5f7',
+            rowHoverBg: 'rgba(0, 122, 255, 0.04)', // Highlight biru lembut saat hover
           },
           Pagination: {
-            borderRadius: 8,
-            colorPrimary: '#0f172a',
+            borderRadius: 10,
+            colorPrimary: '#007AFF',
+            itemSize: 32,
           },
         },
       }}
     >
-      <div className="macos-table-container">
-        {/* --- HEADER BAR (Apple Style Tool Bar) --- */}
-        {(tableTitle || extra) && (
-          <div className="table-top-bar">
-            <div className="title-section">
-              {tableIcon && (
-                <div className="icon-wrapper">
-                  {tableIcon}
-                </div>
-              )}
-              
-              <div className="text-wrapper">
-                <Text className="main-title">{tableTitle}</Text>
-                <div className="sub-title-row">
-                  <div className="status-dot" />
-                  <Text className="sub-title">
-                    {new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
-                  </Text>
+      <div className="macos-2026-table-wrapper">
+        <div className="macos-table-container">
+          {/* --- HEADER BAR (Refined Apple Toolbar) --- */}
+          {(tableTitle || extra) && (
+            <div className="table-top-bar">
+              <div className="title-section">
+                {tableIcon && (
+                  <div className="icon-wrapper">
+                    {tableIcon}
+                  </div>
+                )}
+                
+                <div className="text-wrapper">
+                  <Text className="main-title">{tableTitle}</Text>
+                  <div className="sub-title-row">
+                    <div className="status-dot-pulse" />
+                    <Text className="sub-title">
+                      System Active • {new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </Text>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="extra-actions">
-              {extra}
+              <div className="extra-actions">
+                {extra}
+              </div>
             </div>
+          )}
+
+          {/* --- TABLE BODY --- */}
+          <div className="table-inner-body">
+            <Table<T>
+              size="middle"
+              bordered={false}
+              pagination={props.pagination !== false ? {
+                ...props.pagination,
+                showSizeChanger: true,
+                position: ['bottomRight'],
+                size: 'small',
+              } : false}
+              {...restProps}
+              className="macos-table-root"
+            />
           </div>
-        )}
-
-        {/* --- TABLE BODY --- */}
-        <div className="table-inner-body">
-          <Table<T>
-            size="middle"
-            bordered={false}
-            pagination={props.pagination !== false ? {
-              ...props.pagination,
-              showSizeChanger: true,
-              position: ['bottomRight'],
-            } : false}
-            {...restProps}
-            className="macos-table-root"
-          />
         </div>
       </div>
 
       <style>{`
+        /* Container Wrapper dengan Ambient Shadow */
+        .macos-2026-table-wrapper {
+          padding: 10px;
+          background: transparent;
+        }
+
         .macos-table-container {
-          background: #ffffff;
-          border-radius: 18px;
-          border: 1px solid rgba(15, 23, 42, 0.08);
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(25px) saturate(180%);
+          -webkit-backdrop-filter: blur(25px) saturate(180%);
+          border-radius: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.7);
           overflow: hidden;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
-          transition: all 0.3s ease;
+          box-shadow: 
+            0 4px 6px -1px rgba(0, 0, 0, 0.05), 
+            0 20px 40px -10px rgba(0, 0, 0, 0.08),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+          transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
         .table-top-bar {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 18px 24px;
-          background: rgba(255, 255, 255, 0.5);
-          backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+          padding: 24px 28px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.04);
         }
 
         .title-section {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 16px;
         }
 
         .icon-wrapper {
-          color: #0f172a;
+          background: linear-gradient(145deg, #ffffff, #f0f0f0);
+          width: 42px;
+          height: 42px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 18px;
-          opacity: 0.8;
+          border-radius: 12px;
+          font-size: 20px;
+          color: #007AFF;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+          border: 0.5px solid rgba(0,0,0,0.05);
         }
 
         .main-title {
-          font-weight: 700;
-          font-size: 16px;
-          color: #0f172a;
-          letter-spacing: -0.3px;
+          font-weight: 600;
+          font-size: 18px;
+          color: #1d1d1f;
+          letter-spacing: -0.4px;
+          display: block;
         }
 
         .sub-title-row {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
+          margin-top: 2px;
         }
 
-        .status-dot {
-          width: 5px;
-          height: 5px;
+        .status-dot-pulse {
+          width: 6px;
+          height: 6px;
           background: #34c759;
           border-radius: 50%;
+          position: relative;
+        }
+        
+        .status-dot-pulse::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: #34c759;
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 0.8; }
+          100% { transform: scale(3); opacity: 0; }
         }
 
         .sub-title {
-          font-size: 11px;
-          color: #94a3b8;
-          font-weight: 500;
-          letter-spacing: 0.2px;
+          font-size: 12px;
+          color: #86868b;
+          font-weight: 400;
         }
 
-        /* Styling Header Table khas Mac (Lower Contrast) */
+        /* Styling Header Table khas macOS (Clean & Subtle) */
         .macos-table-root .ant-table-thead > tr > th {
-          font-weight: 600 !important;
-          font-size: 11px !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.5px !important;
-          padding-top: 16px !important;
-          padding-bottom: 16px !important;
+          font-weight: 500 !important;
+          font-size: 12px !important;
+          color: #86868b !important;
+          background: rgba(250, 250, 252, 0.4) !important;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.03) !important;
+          transition: all 0.2s ease;
         }
 
-        /* Remove Cell Borders */
+        /* Table Content */
         .macos-table-root .ant-table-tbody > tr > td {
-          border-bottom: 1px solid rgba(15, 23, 42, 0.03) !important;
+          border-bottom: 1px solid #f5f5f7 !important;
+          color: #1d1d1f;
+          font-weight: 400;
         }
 
-        /* Pagination Clean Up */
+        /* Hover Effect pada Row */
+        .ant-table-row:hover > td {
+          background: rgba(0, 122, 255, 0.02) !important;
+        }
+
+        /* Pagination Styling */
         .ant-table-pagination.ant-pagination {
-          margin: 16px 24px !important;
+          padding: 16px 24px !important;
+          margin: 0 !important;
+          border-top: 1px solid rgba(0, 0, 0, 0.02);
         }
 
-        /* Action Buttons Wrapper (jika ada extra) */
         .extra-actions {
           display: flex;
-          gap: 8px;
+          gap: 10px;
+          align-items: center;
         }
 
-        /* Hover Row Animation */
-        .ant-table-row {
-          transition: background 0.2s ease;
+        /* Custom Scrollbar untuk Table */
+        .ant-table-body::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .ant-table-body::-webkit-scrollbar-thumb {
+          background: rgba(0,0,0,0.1);
+          border-radius: 10px;
         }
       `}</style>
     </ConfigProvider>

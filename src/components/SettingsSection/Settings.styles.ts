@@ -25,7 +25,7 @@ export const localStyles: Record<string, React.CSSProperties> = {
   },
   tabContent: { 
     padding: '32px',
-    animation: 'fadeIn 0.4s ease-out'
+    animation: 'fadeIn 0.4s ease-out',
   },
   actionBox: { 
     display: 'flex', 
@@ -34,8 +34,9 @@ export const localStyles: Record<string, React.CSSProperties> = {
     padding: '40px', 
     background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', 
     borderRadius: '20px', 
-    border: '1px solid #e2e8f0',
-    marginTop: '10px'
+    border: '1px solidrgb(0, 0, 0)',
+    marginTop: '10px',
+    
   },
   dividerText: {
     letterSpacing: '0.05em',

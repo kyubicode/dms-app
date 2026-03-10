@@ -54,7 +54,7 @@ export const s = createStyles({
     marginRight: 'auto'
   },
 breadcrumbArea: { 
-    padding: '16px 0px 16px 50px',
+    padding: '16px 0px 8px 40px',
   },
   breadcrumbFlex: { 
     display: 'flex', 
@@ -103,7 +103,7 @@ breadcrumbArea: {
     color: '#0f172a'
   },
   contentContainer: {
-    padding: '0 50px',
+    padding: '0 30px',
     animation: 'fadeInUp 0.4s ease-out'
   },
   metaTextAccent: {

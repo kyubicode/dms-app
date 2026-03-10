@@ -1,20 +1,34 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Space, Input, Form, ConfigProvider, 
-  Typography, Button, Tag, Popconfirm, Avatar, App 
+  Typography, Button, Tag, Popconfirm, Avatar, App, Tooltip, Modal, message,
 } from 'antd';
+
 import { 
   AiOutlineSearch, AiOutlineDelete, AiOutlineEdit,
-  AiOutlineIdcard, AiOutlineUser, AiOutlineDatabase, AiOutlinePlus 
+  AiOutlineIdcard, AiOutlineUser, AiOutlineDatabase, AiOutlinePlus,
+  AiOutlineClockCircle // Tambahkan ini karena dipakai di render
 } from 'react-icons/ai';
+import { FcAcceptDatabase } from "react-icons/fc";
 
 // Import komponen internal
 import { DataTable } from '../DataTable/DataTable'; 
 import { PersonnelIdCard } from '../PersonnelIdCard/PersonnelIdCard';
-import { UserFormModal } from './UserFormModal'; // Komponen yang kita pisah tadi
+import { UserFormModal } from './UserFormModal'; 
 import { localStyles, globalCss } from './UsersSection.styles';
 
 const { Text } = Typography;
+
+// --- FALLBACK THEME (Jika belum ada import theme global) ---
+const dmsTheme = {
+  colors: {
+    primary: '#007AFF',
+    accent: '#059669',
+  },
+  fonts: {
+    code: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace'
+  }
+};
 
 export const UsersSection: React.FC = () => {
   const [form] = Form.useForm();
@@ -34,7 +48,7 @@ export const UsersSection: React.FC = () => {
 
   // --- HELPERS ---
   const currentUser = useMemo(() => JSON.parse(localStorage.getItem('user') || '{"role":"user"}'), []);
-  const isAdmin = currentUser.role === 'admin';
+  const isAdminUser = currentUser.role === 'admin'; // Ubah nama biar gak bentrok
 
   const getFileUrl = useCallback((pathStr: string | null | undefined): string | null => {
     if (!pathStr) return null;
@@ -90,7 +104,7 @@ export const UsersSection: React.FC = () => {
       } else {
         msgApi.error(res?.message || 'TRANSACTION REJECTED');
       }
-    } catch (err) { msgApi.error('TRANSACTION_FAILED'); } 
+    } catch (err) { msgApi.error('TRANSACTION FAILED'); } 
     finally { setActionLoading(false); }
   };
 
@@ -99,24 +113,54 @@ export const UsersSection: React.FC = () => {
     { 
       title: 'UID', 
       render: (_: any, __: any, i: number) => (
-        <div style={localStyles.idxBadge}>{(i + 1).toString().padStart(3, '0')}</div>
+        <div style={{
+          ...localStyles.idxBadge as any,
+          background: '#f1f5f9',
+          border: '1px solid #e2e8f0',
+          color: '#64748b',
+          fontSize: '10px',
+          fontWeight: 700,
+          fontFamily: dmsTheme.fonts.code
+        }}>
+          {(i + 1).toString().padStart(3, '0')}
+        </div>
       ), 
       width: 70, align: 'center' 
     },
     { 
       title: 'IDENTITAS PERSONEL', 
       render: (r: any) => (
-        <Space size={12}>
-          <div style={localStyles.avatarWrapper}>
+        <Space size={16}>
+          <div style={{
+            position: 'relative',
+            padding: '2px',
+            background: 'linear-gradient(135deg, #007aff 0%, #00d1ff 100%)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
             <Avatar 
-              shape="circle" size={42} 
+              shape="circle" 
+              size={44} 
               src={getFileUrl(r.foto) || undefined} 
               icon={<AiOutlineUser />} 
+              style={{ border: '2px solid #fff' }}
             />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <Text strong style={localStyles.nameText}>{r.fullname}</Text>
-            <Text style={localStyles.idText}>{r.id_pegawai || 'NO_ID'}</Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <Text strong style={{ fontSize: '14px', color: '#1e293b', letterSpacing: '-0.2px', lineHeight: 1 }}>
+              {r.fullname?.toUpperCase()}
+            </Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Text style={{ fontSize: '10px', fontFamily: dmsTheme.fonts.code, color: '#94a3b8', fontWeight: 600 }}>
+                ID:{r.id_pegawai || 'NO_REG'}
+              </Text>
+              <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#cbd5e1' }} />
+              <Text style={{ fontSize: '9px', color: dmsTheme.colors.primary, fontWeight: 800 }}>
+                VERIFIED
+              </Text>
+            </div>
           </div>
         </Space>
       )
@@ -124,37 +168,58 @@ export const UsersSection: React.FC = () => {
     { 
       title: 'ACCESS_LEVEL', 
       dataIndex: 'role', 
-      width: 140,
-      render: (role: string) => (
-        <Tag color={role === 'admin' ? 'blue' : 'default'} style={localStyles.roleTag}>
-          {role?.toUpperCase()}
-        </Tag>
-      )
+      width: 160,
+      render: (role: string) => {
+        const isRoleAdmin = role?.toLowerCase() === 'admin';
+        return (
+          <div style={{
+            background: isRoleAdmin ? '#eff6ff' : '#f8fafc',
+            border: `1px solid ${isRoleAdmin ? '#3b82f630' : '#e2e8f0'}`,
+            padding: '4px 10px',
+            borderRadius: '20px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isRoleAdmin ? '#3b82f6' : '#94a3b8' }} />
+            <Text style={{ fontSize: '10px', fontWeight: 800, color: isRoleAdmin ? '#1e40af' : '#475569', letterSpacing: '0.5px' }}>
+              {role?.toUpperCase()}
+            </Text>
+          </div>
+        );
+      }
     },
     { 
-      title: 'CONTROL_PANEL', 
+      title: 'CONTROL_INTERFACE', 
       align: 'right',
-      width: 180,
+      width: 200,
       render: (r: any) => (
-        <Space size={8}>
-          <Button 
-            className="action-btn-apple" 
-            icon={<AiOutlineIdcard />} 
-            onClick={() => { setSelectedUser(r); setIsIdCardVisible(true); }} 
-          />
-          {isAdmin && (
+        <Space size={4}>
+          <Tooltip title="View ID Card">
+            <Button className="action-btn-industrial" icon={<AiOutlineIdcard />} onClick={() => { setSelectedUser(r); setIsIdCardVisible(true); }} />
+          </Tooltip>
+          
+          {isAdminUser && (
             <>
-              <Button className="action-btn-apple" icon={<AiOutlineEdit />} onClick={() => {
-                   setEditingUser(r);
-                   setPreviewFoto(getFileUrl(r.foto));
-                   form.setFieldsValue(r);
-                   setIsModalVisible(true);
-              }} />
-              <Popconfirm title="Hapus data?" onConfirm={async () => {
-                  const res = await api.deleteUser(r.id);
-                  if (res?.success) { msgApi.success('Purged'); fetchUsers(true); }
-              }}>
-                <Button className="action-btn-apple" danger icon={<AiOutlineDelete />} disabled={r.id === currentUser.id} />
+              <div style={{ width: '1px', height: '16px', background: '#e2e8f0', margin: '0 4px' }} />
+              <Tooltip title="Edit Profile">
+                <Button className="action-btn-industrial" icon={<AiOutlineEdit />} onClick={() => {
+                     setEditingUser(r);
+                     setPreviewFoto(getFileUrl(r.foto));
+                     form.setFieldsValue(r);
+                     setIsModalVisible(true);
+                }} style={{ color: dmsTheme.colors.primary }} />
+              </Tooltip>
+              
+              <Popconfirm 
+                title="PURGE_USER_DATA: Konfirmasi penghapusan?" 
+                onConfirm={async () => {
+                    const res = await api.deleteUser(r.id);
+                    if (res?.success) { msgApi.success('Purged'); fetchUsers(true); }
+                }}
+                okText="Purge" okButtonProps={{ danger: true, size: 'small' }}
+              >
+                <Button className="action-btn-industrial-danger" danger icon={<AiOutlineDelete />} disabled={r.id === currentUser.id} />
               </Popconfirm>
             </>
           )}
@@ -168,9 +233,7 @@ export const UsersSection: React.FC = () => {
   }, [users, searchText]);
 
   return (
-    <ConfigProvider theme={{ 
-      token: { borderRadius: 12, colorPrimary: '#007AFF' } 
-    }}>
+    <ConfigProvider theme={{ token: { borderRadius: 12, colorPrimary: '#007AFF' } }}>
       <div style={localStyles.container}>
         <style>{globalCss}</style>
         
@@ -188,7 +251,7 @@ export const UsersSection: React.FC = () => {
 
         <DataTable
           tableTitle="Data Pengguna"
-          tableIcon={<AiOutlineDatabase style={{ color: '#007AFF' }} />}
+          tableIcon={<FcAcceptDatabase size={40}/>}
           dataSource={filteredUsers}
           columns={columns as any}
           rowKey="id"
@@ -196,20 +259,20 @@ export const UsersSection: React.FC = () => {
           extra={
             <Space size={12}>
               <Input 
+                style={localStyles.searchBar as any}
                 prefix={<AiOutlineSearch style={{ opacity: 0.4 }} />} 
                 placeholder="Cari nama..." 
                 value={searchText} 
                 onChange={e => setSearchText(e.target.value)} 
-                style={{ width: 220, borderRadius: 10 }}
                 allowClear 
               />
-              <Button type="primary" icon={<AiOutlinePlus />} onClick={() => {
+              <Button style={localStyles.addButton as any} type="primary" icon={<AiOutlinePlus />} onClick={() => {
                 setEditingUser(null);
                 setPreviewFoto(null);
                 form.resetFields();
                 form.setFieldsValue({ id_pegawai: generateUniqueId(), role: 'user' });
                 setIsModalVisible(true);
-              }}>Add Personnel</Button>
+              }}>TAMBAH PENGGUNA</Button>
             </Space>
           }
         />

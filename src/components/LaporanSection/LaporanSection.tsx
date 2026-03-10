@@ -7,10 +7,11 @@ import { BsFileEarmarkPdf, BsFileEarmarkWord, BsEye } from "react-icons/bs";
 import { 
   AiOutlinePlusSquare, AiOutlineSearch, 
   AiOutlineDelete, AiOutlineEdit, AiOutlineCloudUpload,
-  AiOutlineFileText, AiOutlineCalendar, AiOutlineDatabase,
+  AiOutlineFileText, AiOutlineCalendar,
   AiOutlineClockCircle, AiOutlineLoading3Quarters,
   AiOutlinePlus
 } from 'react-icons/ai';
+import { FcAcceptDatabase } from "react-icons/fc";
 import { CiViewTimeline } from "react-icons/ci";
 import dayjs from 'dayjs';
 import type { TableProps } from 'antd';
@@ -203,108 +204,153 @@ const fetchLaporan = useCallback(async () => {
     );
   }, [laporanList, searchText]);
 
-  const columns: TableProps<ILaporan>['columns'] = [
-    { 
-      title: 'DOC ID', 
-      render: (_, __, i) => <div style={localStyles.idxBadge as any}>{(i + 1).toString().padStart(3, '0')}</div>, 
-      width: 60, align: 'center' 
-    },
-    { 
-      title: 'Nama Laporan', 
-      dataIndex: 'nama_laporan', 
-      render: (text) => (
-        <div style={localStyles.projectNameContainer as any}>
-          <Text strong style={localStyles.projectNameMain as any}>{text}</Text>
-          <Text style={localStyles.projectNameSub as any}>DMS PROJECT</Text>
+const columns: TableProps<ILaporan>['columns'] = [
+  { 
+    title: 'DOC ID', 
+    render: (_, __, i) => (
+      <div style={{
+        ...localStyles.idxBadge as any,
+        background: '#f1f5f9',
+        border: '1px solid #e2e8f0',
+        color: '#64748b',
+        fontSize: '10px',
+        fontWeight: 700,
+        fontFamily: dmsTheme.fonts.code
+      }}>
+        {(i + 1).toString().padStart(3, '0')}
+      </div>
+    ), 
+    width: 70, align: 'center' 
+  },
+  { 
+    title: 'Nama Laporan', 
+    dataIndex: 'nama_laporan', 
+    render: (text) => (
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <Text strong style={{ fontSize: '14px', color: '#1e293b', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
+          {text}
+        </Text>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+          <span style={{ width: '8px', height: '2px', background: dmsTheme.colors.primary, borderRadius: '2px' }} />
+          <Text style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.5px' }}>
+            DMS-CORP PROJECT SYSTEM
+          </Text>
         </div>
-      )
-    },
-    { 
-      title: 'Tgl Laporan', 
-      dataIndex: 'tgl_laporan', 
-      width: 120,
-      render: (date) => (
-        <Space size={6}>
-          <AiOutlineCalendar style={{ color: '#94a3b8' }} />
-          <Text style={localStyles.dateText as any}>{date ? dayjs(date).format('DD/MM/YYYY') : '-'}</Text>
-        </Space>
-      )
-    },
-    { 
-        title: 'Progress', 
-        dataIndex: 'progress', 
-        width: 140, 
-        render: (t) => renderStatus(t, 'progress') 
-    },
-    { 
-        title: 'Tahap', 
-        dataIndex: 'tahap', 
-        width: 130, 
-        render: (t) => renderStatus(t, 'tahap') 
-    },
-    { 
-      title: 'Dokumentasi', 
-      dataIndex: 'jumlah_dok', 
-      align: 'center', 
-      width: 80,
-      render: (val) => (
-        <Text style={{ 
-          fontWeight: 900, fontFamily: dmsTheme.fonts.code, 
-          color: val > 0 ? dmsTheme.colors.status.success : '#cbd5e1', fontSize: '14px'
-        } as any}>{val || 0}</Text>
-      )
-    },
-    { 
-      title: 'Options', 
-      key: 'action', width: 260, align: 'center',
-      render: (_, record) => (
-        <Space size={4}>
-          <Tooltip title="Preview">
-            <Button className="action-btn-industrial" icon={<BsEye />} onClick={() => { setViewerLaporan(record); setViewerOpen(true); }} />
-          </Tooltip>
-          <Tooltip title="Export Word">
-            <Button 
-              className="action-btn-industrial" 
-              icon={exporting ? <AiOutlineLoading3Quarters className="anticon-spin" /> : <BsFileEarmarkWord />} 
-              onClick={() => handleExportWord(record)} 
-              style={{ color: '#2b579a' }} 
-              disabled={exporting} 
-            />
-          </Tooltip>
-          <Tooltip title="Export PDF">
-            <Button 
-              className="action-btn-industrial" 
-              icon={exporting ? <AiOutlineLoading3Quarters className="anticon-spin" /> : <BsFileEarmarkPdf />} 
-              onClick={() => handleExportPDF(record)} 
-              style={{ color: dmsTheme.colors.status.danger }} 
-              disabled={exporting} 
-            />
-          </Tooltip>
-          <Tooltip title="Upload Assets">
-            <Button className="action-btn-industrial" icon={<AiOutlineCloudUpload />} onClick={() => { setSelectedLaporan(record); setIsModalOpen(true); }} style={{ color: '#059669' }} />
-          </Tooltip>
-          <Tooltip title="Edit Record">
-            <Button className="action-btn-industrial" icon={<AiOutlineEdit />} onClick={() => handleEdit(record)} style={{ color: dmsTheme.colors.accent }} />
-          </Tooltip>
-          <Popconfirm 
-            title="Hapus Laporan?"
-            onConfirm={async () => {
-              if (!electronAPI) return;
-              const hide = message.loading('EXECUTING_DELETE...', 0);
-              try {
-                const result = await electronAPI.invoke('laporan:delete', record.id_laporan);
-                hide();
-                if (result) { message.success('DATA_DELETED'); fetchLaporan(); }
-              } catch (error) { hide(); message.error('DELETE_FAILED'); }
-            }}
-            okText="Ya" cancelText="Batal" okButtonProps={{ danger: true }}
-          >
-            <Button className="action-btn-industrial" danger icon={<AiOutlineDelete />} />
-          </Popconfirm>
-        </Space>
-      ) 
-    }
-  ];
+      </div>
+    )
+  },
+  // --- TANGGAL LAPORAN (KEMBALI DENGAN DESAIN PRO) ---
+  { 
+    title: 'Tgl Laporan', 
+    dataIndex: 'tgl_laporan', 
+    width: 140,
+    render: (date) => (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '8px', 
+        padding: '4px 8px', 
+        background: '#ffffff', 
+        border: '1px dashed #cbd5e1', 
+        borderRadius: '6px' 
+      }}>
+        <AiOutlineCalendar style={{ color: dmsTheme.colors.primary, fontSize: '16px' }} />
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Text style={{ fontSize: '11px', fontWeight: 700, color: '#475569', lineHeight: 1 }}>
+            {date ? dayjs(date).format('DD MMM YYYY') : 'N/A'}
+          </Text>
+          <Text style={{ fontSize: '8px', color: '#94a3b8', fontWeight: 600 }}>REPORT DATE</Text>
+        </div>
+      </div>
+    )
+  },
+  { 
+    title: 'Timeline Dokumentasi', 
+    key: 'timeline',
+    width: 190,
+    render: (_, record) => (
+      <div style={{ 
+        background: '#f8fafc', 
+        padding: '6px 10px', 
+        borderRadius: '8px', 
+        border: '1px solid #f1f5f9',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#22c55e' }} />
+            <Text style={{ fontSize: '8px', color: '#94a3b8', fontWeight: 800 }}>MULAI</Text>
+          </div>
+          <Text style={{ fontSize: '10px', fontFamily: dmsTheme.fonts.code, color: '#475569', fontWeight: 700 }}>
+            {record.tgl_mulai ? dayjs(record.tgl_mulai).format('DD/MM/YY') : '---'}
+          </Text>
+        </div>
+        <div style={{ height: '1px', background: '#e2e8f0', width: '100%' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#ef4444' }} />
+            <Text style={{ fontSize: '8px', color: '#94a3b8', fontWeight: 800 }}>SELESAI</Text>
+          </div>
+          <Text style={{ fontSize: '10px', fontFamily: dmsTheme.fonts.code, color: '#475569', fontWeight: 700 }}>
+            {record.tgl_selesai ? dayjs(record.tgl_selesai).format('DD/MM/YY') : '---'}
+          </Text>
+        </div>
+      </div>
+    )
+  },
+  { 
+    title: 'Status & Tahap', 
+    key: 'status_phase',
+    width: 150,
+    render: (_, record) => (
+      <Space direction="vertical" size={4}>
+        {renderStatus(record.progress, 'progress')}
+        <div style={{ fontSize: '9px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', paddingLeft: '4px' }}>
+          <AiOutlineClockCircle />
+          <span>TAHAP: {record.tahap?.toUpperCase() || 'UNDEFINED'}</span>
+        </div>
+      </Space>
+    ) 
+  },
+  { 
+    title: 'DOKUMENTASI', 
+    dataIndex: 'jumlah_dok', 
+    align: 'center', 
+    width: 85,
+    render: (val) => (
+      <div style={{ 
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        background: val > 0 ? '#ecfdf5' : '#f8fafc', padding: '4px', borderRadius: '6px',
+        border: `1px solid ${val > 0 ? '#10b98120' : '#e2e8f0'}`
+      }}>
+        <Text style={{ fontWeight: 900, fontFamily: dmsTheme.fonts.code, color: val > 0 ? '#059669' : '#cbd5e1', fontSize: '14px', lineHeight: 1 }}>
+          {val || 0}
+        </Text>
+        <Text style={{ fontSize: '8px', color: val > 0 ? '#059669' : '#cbd5e1', fontWeight: 700 }}>FILES</Text>
+      </div>
+    )
+  },
+  { 
+    title: 'Control Interface', 
+    key: 'action', 
+    width: 240, 
+    align: 'right',
+    render: (_, record) => (
+      <Space size={2}>
+        <Tooltip title="View Document"><Button className="action-btn-industrial" icon={<BsEye />} onClick={() => { setViewerLaporan(record); setViewerOpen(true); }} /></Tooltip>
+        <div style={{ width: '1px', height: '16px', background: '#e2e8f0', margin: '0 4px' }} />
+        <Tooltip title="DOCX"><Button className="action-btn-industrial" icon={exporting ? <AiOutlineLoading3Quarters className="anticon-spin" /> : <BsFileEarmarkWord />} onClick={() => handleExportWord(record)} style={{ color: '#2b579a' }} disabled={exporting} /></Tooltip>
+        <Tooltip title="PDF"><Button className="action-btn-industrial" icon={exporting ? <AiOutlineLoading3Quarters className="anticon-spin" /> : <BsFileEarmarkPdf />} onClick={() => handleExportPDF(record)} style={{ color: dmsTheme.colors.status.danger }} disabled={exporting} /></Tooltip>
+        <div style={{ width: '1px', height: '16px', background: '#e2e8f0', margin: '0 4px' }} />
+        <Tooltip title="Upload"><Button className="action-btn-industrial" icon={<AiOutlineCloudUpload />} onClick={() => { setSelectedLaporan(record); setIsModalOpen(true); }} style={{ color: '#059669' }} /></Tooltip>
+        <Tooltip title="Edit"><Button className="action-btn-industrial" icon={<AiOutlineEdit />} onClick={() => handleEdit(record)} style={{ color: dmsTheme.colors.accent }} /></Tooltip>
+        <Popconfirm title="Delete record?" onConfirm={async () => { if (!electronAPI) return; const result = await electronAPI.invoke('laporan:delete', record.id_laporan); if (result) { message.success('DATA_DELETED'); fetchLaporan(); } }} okText="Delete" cancelText="Cancel" okButtonProps={{ danger: true, size: 'small' }}><Button className="action-btn-industrial-danger" icon={<AiOutlineDelete />} /></Popconfirm>
+      </Space>
+    ) 
+  }
+];
 
   return (
     <ConfigProvider 
@@ -362,7 +408,7 @@ const fetchLaporan = useCallback(async () => {
 
         <DataTable<ILaporan>
           tableTitle="DATA LAPORAN"
-          tableIcon={<AiOutlineDatabase />}
+          tableIcon={<FcAcceptDatabase size={40} />}
           dataSource={filteredData}
           columns={columns}
           loading={tableLoading}
@@ -389,16 +435,16 @@ const fetchLaporan = useCallback(async () => {
           }
         />
 
-   <DokumentasiViewerModal
-        // TAMBAHKAN KEY: Ini memastikan modal me-reset state internalnya 
-        // setiap kali laporan yang dipilih berubah.
-        key={viewerLaporan?.id_laporan ? `viewer-${viewerLaporan.id_laporan}` : 'viewer-empty'}
-        open={viewerOpen} 
-        laporan={viewerLaporan} 
-        onClose={() => setViewerOpen(false)} 
-        onRefresh={fetchLaporan} // fetchLaporan akan dipanggil saat album dihapus/ditambah
-        zIndex={1900} 
-      />
+      <DokumentasiViewerModal
+            // TAMBAHKAN KEY: Ini memastikan modal me-reset state internalnya 
+            // setiap kali laporan yang dipilih berubah.
+            key={viewerLaporan?.id_laporan ? `viewer-${viewerLaporan.id_laporan}` : 'viewer-empty'}
+            open={viewerOpen} 
+            laporan={viewerLaporan} 
+            onClose={() => setViewerOpen(false)} 
+            onRefresh={fetchLaporan} // fetchLaporan akan dipanggil saat album dihapus/ditambah
+            zIndex={1900} 
+          />
 
         <DokumentasiModal 
           visible={isModalOpen} 

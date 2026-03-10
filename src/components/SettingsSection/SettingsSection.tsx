@@ -7,10 +7,12 @@ import {
   AiOutlineConsoleSql, AiOutlineFileText, AiOutlineBgColors, 
   AiOutlineLayout, AiOutlineHistory, AiOutlineReload,
   AiOutlineExpand, AiOutlineFontSize,
-  AiOutlineFontColors, AiOutlineFilePdf, AiOutlineDatabase,
-  AiOutlineSetting, AiOutlineDashboard
+  AiOutlineFontColors,
 } from 'react-icons/ai';
-import { GrDocumentText,GrDocumentConfig  } from "react-icons/gr";
+import { FcSettings  } from "react-icons/fc";
+import { GrDocumentText,} from "react-icons/gr";
+
+import { FcExport,FcCommandLine,FcClock,FcRules  } from "react-icons/fc";
 import { AuditLogViewer } from '../AuditLogViewer/AuditLogViewer';
 import { RoleGuard } from '../Guards/RoleGuard';
 import { SQLiteTerminal } from '../SQLiteTerminal/SQLiteTerminal';
@@ -133,8 +135,8 @@ export const SettingsSection: React.FC = () => {
   );
 
   const tabItems = [
-    { key: 'document', label: <span style={localStyles.tabLabel}><GrDocumentConfig /> Dokumen</span>, children: renderDocumentTab() },
-    { key: 'database', label: <span style={localStyles.tabLabel}><AiOutlineDatabase /> Database</span>, children: (
+    { key: 'document', label: <span style={localStyles.tabLabel}><FcRules  size={20} /> Dokumen</span>, children: renderDocumentTab() },
+    { key: 'database', label: <span style={localStyles.tabLabel}><FcCommandLine  size={20} /> Data Access</span>, children: (
         <div style={localStyles.tabContent}>
           <div style={localStyles.actionBox}>
             <div style={{ background: '#e0f2fe', padding: '15px', borderRadius: '12px' }}><AiOutlineConsoleSql size={32} style={{ color: '#0ea5e9' }} /></div>
@@ -143,7 +145,7 @@ export const SettingsSection: React.FC = () => {
           </div>
         </div>
     )},
-    { key: 'activity', label: <span style={localStyles.tabLabel}><AiOutlineDashboard /> Aktivitas</span>, children: (
+    { key: 'activity', label: <span style={localStyles.tabLabel}><FcClock size={20} /> Aktivitas</span>, children: (
         <div style={localStyles.tabContent}>
           <div style={localStyles.actionBox}>
             <div style={{ background: '#ffe4e6', padding: '15px', borderRadius: '12px' }}><AiOutlineHistory size={32} style={{ color: '#f43f5e' }} /></div>
@@ -166,7 +168,7 @@ export const SettingsSection: React.FC = () => {
         `}</style>
         <div style={localStyles.mainCard}>
           <div style={localStyles.pageHeader}>
-            <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}><AiOutlineSetting style={{ color: '#38bdf8' }} />System Settings</Title>
+            <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}><FcSettings size={40} />System Settings</Title>
             <Button danger ghost icon={<AiOutlineReload />} onClick={() => updateLayout({ judulLaporan: 'LAPORAN DOKUMENTASI PEKERJAAN', headerColor: '#1F4E78', fontColor: '#333333', titleSize: 24, descSize: 8, columns: 3, rowGap: 15, marginPage: 20, objectFit: 'contain', pageSize: 'a4' })}>Reset Default</Button>
           </div>
           <Tabs className="settings-tabs" defaultActiveKey="document" items={tabItems} />

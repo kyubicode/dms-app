@@ -2,6 +2,7 @@
 export interface ILaporan {
   id_laporan: number;
   nama_laporan: string;
+  progress: string;
   tahap?: string;
   progres?:string;
   tgl_laporan?: string;

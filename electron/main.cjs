@@ -103,6 +103,7 @@ async function initializeApp() {
             if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.show();
+                //dev tool
                 if (!app.isPackaged) {
                     mainWindow.webContents.openDevTools({ mode: 'detach' });
                 }

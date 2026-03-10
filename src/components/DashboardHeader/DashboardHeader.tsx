@@ -37,7 +37,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogoutStart 
   const menuItems = [
     { 
       key: 'settings', 
-      label: 'Configuration', 
+      label: 'Change Password', 
       icon: <AiOutlineSetting style={{ fontSize: '16px' }} /> 
     },
     { type: 'divider' as const },
@@ -61,7 +61,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogoutStart 
         </div>
         <div style={{ marginLeft: '12px', lineHeight: 1 }}>
           <Text style={s.brandTitle}>
-            DMSmanagement <Text style={s.vTag}>PRO</Text>
+            DMSmanagement <Text style={s.vTag}>Enterprise</Text>
           </Text>
           <Text style={s.brandSubtitle}>CV. Dinamika Mitra Sinergi</Text>
         </div>

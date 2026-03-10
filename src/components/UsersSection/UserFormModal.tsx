@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Form, Row, Col, Input, Select, Space, Typography } from 'antd';
 import { AiOutlineCamera, AiOutlineEdit, AiOutlineFileText, AiOutlineIdcard, AiOutlineUser, AiOutlineReload, AiOutlineLock } from 'react-icons/ai';
+import { FcCamera } from "react-icons/fc";
 import { FormInput } from '../FormInput/FormInput';
 import { localStyles } from './UsersSection.styles';
 
@@ -59,7 +60,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               </Space>
             )}
             <div className="photo-overlay">
-              <AiOutlineEdit size={20} />
+              <FcCamera size={28} />
             </div>
           </div>
           <Form.Item name="foto" hidden><Input /></Form.Item>

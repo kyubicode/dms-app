@@ -6,6 +6,7 @@ import {
   AiOutlineLineChart,
   AiOutlineInfoCircle
 } from 'react-icons/ai';
+import { FcBarChart } from "react-icons/fc";
 import { dmsTheme } from '@/styles/dms.theme';
 import { motion } from 'framer-motion';
 
@@ -128,11 +129,11 @@ export const SystemMonitor: React.FC = () => {
             <div style={localStyles.cardHeader as any}>
               <Space size={12}>
                 <div style={{...localStyles.iconContainer, background: isCritical ? '#fff1f0' : dmsTheme.colors.secondary} as any}>
-                  <AiOutlineLineChart size={20} color={isCritical ? '#f5222d' : dmsTheme.colors.primary} />
+                  <FcBarChart size={40} color={isCritical ? '#f5222d' : dmsTheme.colors.primary} />
                 </div>
                 <div>
                   <Title level={5} style={{ margin: 0, fontSize: '14px', letterSpacing: '0.5px' }}>
-                    RESOURCE_ANALYTICS_CORE
+                    RESOURCE ANALYTICS CORE
                   </Title>
                   <Space split={<DividerVertical />}>
                     <Text type="secondary" style={localStyles.subText as any}>LIVE_UTILIZATION</Text>

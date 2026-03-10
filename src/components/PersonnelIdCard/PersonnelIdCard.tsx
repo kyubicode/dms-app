@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
-import { Button, Avatar, Modal } from 'antd';
-import { IoFingerPrint } from "react-icons/io5";
-import { AiOutlinePrinter } from 'react-icons/ai';
-import { dmsTheme } from '@/styles/dms.theme';
+import { Button, Modal } from 'antd';
+// @ts-ignore
+import Barcode from 'react-barcode'; 
+import { AiOutlinePrinter, AiOutlineClose } from 'react-icons/ai';
+import { HiOutlineShieldCheck } from 'react-icons/hi';
+import { MdSecurity } from 'react-icons/md';
 
 interface UserRecord {
   id: string;
@@ -27,204 +29,250 @@ export const PersonnelIdCard: React.FC<PersonnelIdCardProps> = ({
   formatFilePath 
 }) => {
 
-  // Logic: Cek apakah user yang sedang dilihat sama dengan user yang login
   const canPrint = useMemo(() => {
-    if (!user) return false;
+    if (!user || !user.id) return false;
     try {
       const storedData = localStorage.getItem('user');
       if (storedData) {
         const currentUser = JSON.parse(storedData);
-        // Bandingkan ID (menggunakan String() untuk keamanan tipe data)
-        return String(user.id) === String(currentUser.id);
+        return String(user.id) === String(currentUser?.id);
       }
-    } catch (e) {
-      console.error("Auth check failed:", e);
-    }
+    } catch (e) { return false; }
     return false;
   }, [user, visible]);
+
+  if (!user) return null;
+
+  const barcodeValue = user.id_pegawai || 'DMS-0000';
 
   return (
     <Modal 
       open={visible} 
       onCancel={onClose} 
       footer={null} 
-      width={520} 
+      width={600} 
       centered 
-      styles={{ body: { padding: 0, background: 'transparent' } }}
-      closeIcon={<div className="modal-close-tech">X</div>}
+      closable={false}
       destroyOnClose
+      bodyStyle={{ padding: 0, background: 'none' }}
     >
-      {!user ? (
-        <div style={{ padding: '40px', textAlign: 'center', background: '#0f172a', borderRadius: '12px', color: '#38bdf8' }}>
-          LOADING_SECURE_DATA...
-        </div>
-      ) : (
-        <>
-          <div className={`id-card-visual ${user.role}`}>
-            <div className="card-texture" />
-            
-            <div className="card-header-visual">
-              <div className="org-brand">
-                <div className="brand-logo" />
-                <div className="brand-text">
-                  <span className="main">CV.DINAMIKA MITRA SINERGI</span>
-                  <span className="sub">SECURE ACCESS NODE // CORE_V2</span>
-                </div>
-              </div>
-              <div className="hologram-chip" />
-            </div>
+      <div className="id-upgrade-wrapper">
+        <button className="id-close-btn" onClick={onClose}>
+          <AiOutlineClose />
+        </button>
 
-            <div className="card-body-visual">
-              <div className="photo-area">
-                <Avatar 
-                  shape="square" 
-                  size={140} 
-                  src={user.foto ? formatFilePath(user.foto) : undefined} 
-                  className="id-avatar"
-                />
-              </div>
-              
-              <div className="info-area">
-                <div className="badge-row">
-                  <span className="role-label">{user.role.toUpperCase()}</span>
-                  <div className="status-indicator">● SECURE_DATA</div>
+        <div className={`id-frame ${user.role}`}>
+          {/* Layer 1: Background Patterns */}
+          <div className="id-pattern-overlay" />
+          <div className="id-hologram-strip" />
+          
+          <div className="id-content-layer">
+            {/* Header: Brand & Security Level */}
+            <header className="id-header">
+              <div className="id-brand-box">
+                <div className="id-logo-icon">DMS</div>
+                <div className="id-brand-text">
+                  <h1 className="id-main-co">CV. DINAMIKA MITRA SINERGI</h1>
+                  <span className="id-tagline">INTEGRATED INDUSTRIAL SOLUTIONS</span>
                 </div>
-                
-                <h2 className="user-fullname">{user.fullname.toUpperCase()}</h2>
-                
-                <div className="grid-details">
-                  <div className="detail-box">
-                    <label>NODE_ID</label>
-                    <span className="mono-text">{user.id_pegawai}</span>
+              </div>
+              <div className="id-auth-badge">
+                <MdSecurity className="id-sec-icon" />
+                <span>{user.role === 'admin' ? 'SEC_LEVEL_01' : 'SEC_LEVEL_02'}</span>
+              </div>
+            </header>
+
+            {/* Middle Section */}
+            <main className="id-main">
+              <div className="id-left-col">
+                <div className="id-photo-container">
+                  <img 
+                    src={user.foto ? (formatFilePath(user.foto) || '') : ''} 
+                    className="id-photo"
+                    alt="Personnel"
+                    onError={(e) => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/150"; }}
+                  />
+                  <div className="id-photo-border" />
+                </div>
+                <div className={`id-status-pill ${user.role}`}>
+                  ACTIVE PERSONNEL
+                </div>
+              </div>
+
+              <div className="id-right-col">
+                <div className="id-field-group">
+                  <label>IDENTIFIED PERSONNEL</label>
+                  <h2 className="id-name-display">{user.fullname.toUpperCase()}</h2>
+                </div>
+
+                <div className="id-stats-row">
+                  <div className="id-stat-box">
+                    <label>REGISTRY ID</label>
+                    <span className="id-stat-val">{user.id_pegawai}</span>
                   </div>
-                  <div className="detail-box">
-                    <label>ALIAS</label>
-                    <span className="mono-text">@{user.username}</span>
+                  <div className="id-stat-box">
+                    <label>DEPT. CLEARANCE</label>
+                    <span className="id-stat-val">{user.role === 'admin' ? 'HQ_MGMT' : 'OPS_CORE'}</span>
                   </div>
                 </div>
 
-                <div className="security-footer">
-                  <div className="fingerprint-scan"><IoFingerPrint /></div>
-                  <div className="auth-stamp">VERIFIED_BY_CORE_PROTOCOL</div>
+                <div className="id-barcode-container">
+                  <div className="id-barcode-bg">
+                    <Barcode 
+                      value={barcodeValue}
+                      width={1.1}
+                      height={32}
+                      fontSize={0} // Sembunyikan text bawaan barcode agar lebih rapi
+                      background="transparent"
+                      lineColor={user.role === 'admin' ? "#ffffff" : "#0f172a"}
+                    />
+                  </div>
+                  <span className="id-barcode-caption">SYSTEM AUTH: @{user.username}</span>
                 </div>
               </div>
-            </div>
+            </main>
 
-            <div className="card-bottom-visual">
-              <div className="magnetic-stripe" />
-              <div className="legal-text">
-                PROPERTY OF DMS_SYSTEMS. UNAUTHORIZED USE IS A VIOLATION OF SECURITY_PROTOCOL_09.
+            {/* Footer */}
+            <footer className="id-footer">
+              <div className="id-chip-set">
+                <div className={`id-smart-chip ${user.role === 'admin' ? 'gold' : 'silver'}`} />
               </div>
-            </div>
+              <div className="id-legal-info">
+                THIS DOCUMENT IS THE PROPERTY OF CV. DMS. UNAUTHORIZED USE IS PROHIBITED.
+                <br />
+                <span className="id-serial">SN: {String(user.id).toUpperCase().slice(0, 12)}</span>
+              </div>
+            </footer>
           </div>
+        </div>
 
-          {/* Tombol Print hanya tampil jika canPrint true */}
-          {canPrint && (
-            <div className="modal-actions-print">
-              <Button 
-                type="primary" 
-                block 
-                icon={<AiOutlinePrinter />} 
-                onClick={() => window.print()} 
-                className="btn-print"
-                style={{ background: dmsTheme.colors.primary, border: 'none' }}
-              >
-                TO HARD COPY PRINT
-              </Button>
-            </div>
-          )}
-        </>
-      )}
+        {canPrint && (
+          <div className="id-actions">
+            <Button 
+              type="primary" 
+              block 
+              icon={<AiOutlinePrinter />} 
+              onClick={() => window.print()}
+              className="id-print-btn"
+            >
+              GENERATE PHYSICAL CARD
+            </Button>
+          </div>
+        )}
+      </div>
 
       <style>{`
-        .id-card-visual {
-          width: 100%; height: 320px; border-radius: 12px; position: relative;
-          padding: 28px; overflow: hidden; display: flex; flex-direction: column;
-          box-shadow: 0 40px 80px rgba(0,0,0,0.5); 
-          font-family: 'Inter', -apple-system, sans-serif;
+        .ant-modal-content { background: transparent !important; box-shadow: none !important; }
+        .id-upgrade-wrapper { position: relative; width: 500px; margin: 0 auto; padding: 10px; }
+        
+        .id-close-btn {
+          position: absolute; top: 0; right: -40px;
+          width: 35px; height: 35px; border-radius: 50%;
+          background: #334155; color: white; border: none;
+          cursor: pointer; display: flex; align-items: center; justify-content: center;
+          transition: all 0.3s;
         }
+        .id-close-btn:hover { background: #ef4444; transform: rotate(90deg); }
 
-        .id-card-visual.admin { 
-          background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%); 
-          color: white; 
+        /* Card Frame */
+        .id-frame {
+          width: 480px; height: 300px; border-radius: 14px;
+          position: relative; overflow: hidden;
+          font-family: 'Inter', sans-serif;
           border: 1px solid rgba(255,255,255,0.1);
+          box-shadow: 0 30px 60px -12px rgba(0,0,0,0.45);
+        }
+
+        .id-frame.admin { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; }
+        .id-frame.user { background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%); color: #0f172a; }
+
+        /* Graphics */
+        .id-pattern-overlay {
+          position: absolute; inset: 0;
+          background-image: radial-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px);
+          background-size: 12px 12px;
+        }
+
+        .id-hologram-strip {
+          position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+          background: linear-gradient(to bottom, #2563eb, #6366f1, #3b82f6);
+          opacity: 0.6;
+        }
+
+        .id-content-layer { position: relative; z-index: 5; padding: 22px; height: 100%; display: flex; flex-direction: column; }
+
+        /* Header */
+        .id-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+        .id-brand-box { display: flex; gap: 12px; align-items: center; }
+        .id-logo-icon { 
+          width: 32px; height: 32px; background: #2563eb; color: white;
+          font-weight: 900; font-size: 10px; display: flex; 
+          align-items: center; justify-content: center; border-radius: 6px;
+        }
+        .id-main-co { font-size: 13px; font-weight: 800; margin: 0; letter-spacing: 0.5px; }
+        .id-tagline { font-size: 7px; font-weight: 600; opacity: 0.6; letter-spacing: 0.8px; }
+        
+        .id-auth-badge { 
+          display: flex; align-items: center; gap: 5px; font-size: 8px; font-weight: 800;
+          background: rgba(37, 99, 235, 0.1); padding: 4px 8px; border-radius: 20px; color: #2563eb;
+        }
+
+        /* Main Section */
+        .id-main { display: flex; gap: 25px; flex: 1; align-items: center; }
+        .id-photo-container { position: relative; width: 110px; height: 135px; }
+        .id-photo { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
+        .id-photo-border { 
+          position: absolute; inset: -3px; border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 6px; 
         }
         
-        .id-card-visual.user { 
-          background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%); 
-          color: #0f172a; 
-          border: 1px solid #e2e8f0;
-        }
-        
-        .card-texture {
-          position: absolute; top:0; left:0; width:100%; height:100%;
-          background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h1v1H0V0zm10 10h1v1h-1v-1zm10 10h1v1h-1v-1zm10 10h1v1h-1v-1z' fill='%2394a3b8' fill-opacity='0.1'/%3E%3C/svg%3E");
-          pointer-events: none;
+        .id-status-pill { 
+          font-size: 7px; font-weight: 800; text-align: center; margin-top: 10px;
+          padding: 3px; border-radius: 4px; border: 1px solid currentColor; opacity: 0.7;
         }
 
-        .card-header-visual { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; z-index: 2; }
-        .org-brand { display: flex; align-items: center; gap: 12px; }
-        .brand-logo { width: 28px; height: 28px; background: ${dmsTheme.colors.primary}; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
-        .brand-text .main { font-weight: 900; font-size: 16px; letter-spacing: 2px; display: block; }
-        .brand-text .sub { font-size: 8px; opacity: 0.5; font-weight: 700; font-family: ${dmsTheme.fonts.code}; }
-        
-        .hologram-chip { 
-          width: 48px; height: 36px; 
-          background: linear-gradient(135deg, #94a3b8 0%, #cbd5e1 50%, #94a3b8 100%); 
-          border-radius: 6px; border: 1px solid rgba(0,0,0,0.1);
+        .id-right-col { flex: 1; }
+        .id-field-group label { font-size: 7px; font-weight: 700; opacity: 0.5; display: block; margin-bottom: 3px; }
+        .id-name-display { 
+          font-size: 20px !important; font-weight: 900 !important; color: inherit !important; 
+          margin: 0 0 15px 0 !important; line-height: 1; letter-spacing: -0.5px;
         }
 
-        .card-body-visual { display: flex; gap: 28px; z-index: 2; flex: 1; }
-        .photo-area { 
-          padding: 2px; 
-          background: rgba(148, 163, 184, 0.2); 
-          border-radius: 6px; 
-          height: fit-content;
-          border: 1px solid rgba(148, 163, 184, 0.3);
+        .id-stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .id-stat-val { font-size: 11px; font-weight: 800; display: block; }
+
+        .id-barcode-container { margin-top: 10px; }
+        .id-barcode-bg { 
+          padding: 4px; display: inline-block; border-radius: 3px;
+          background: ${user.role === 'admin' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'};
+        }
+        .id-barcode-caption { display: block; font-size: 7px; font-family: monospace; opacity: 0.5; margin-top: 4px; }
+
+        /* Footer */
+        .id-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; }
+        .id-smart-chip { 
+          width: 38px; height: 28px; border-radius: 4px;
+          background: linear-gradient(135deg, #94a3b8, #cbd5e1); position: relative;
+        }
+        .id-smart-chip.gold { background: linear-gradient(135deg, #d4af37, #f59e0b); }
+        .id-smart-chip::after {
+          content: ''; position: absolute; inset: 4px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 2px;
         }
 
-        .id-avatar { border-radius: 4px !important; }
-        .info-area { flex: 1; display: flex; flex-direction: column; }
-        .badge-row { display: flex; justify-content: space-between; align-items: center; }
-        .role-label { 
-          background: ${dmsTheme.colors.primary}; color: white; padding: 2px 12px; 
-          font-size: 10px; font-weight: 900; border-radius: 2px; letter-spacing: 1px;
-        }
-        .status-indicator { font-size: 8px; font-weight: 800; opacity: 0.6; }
+        .id-legal-info { font-size: 6px; text-align: right; opacity: 0.4; font-weight: 600; max-width: 200px; line-height: 1.4; }
+        .id-serial { font-family: monospace; font-size: 7px; }
 
-        .user-fullname { margin: 12px 0 20px 0; font-size: 24px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
-        .grid-details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .detail-box label { display: block; font-size: 9px; opacity: 0.5; font-weight: 800; margin-bottom: 4px; }
-        .mono-text { font-family: ${dmsTheme.fonts.code}; font-weight: 700; font-size: 13px; letter-spacing: 0.5px; }
-
-        .security-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; }
-        .fingerprint-scan { font-size: 32px; opacity: 0.15; }
-        .auth-stamp { 
-          font-size: 7px; font-weight: 900; padding: 4px 8px; 
-          border: 1px solid currentColor; opacity: 0.3; border-radius: 2px;
-        }
-
-        .card-bottom-visual { margin-top: 20px; z-index: 2; }
-        .magnetic-stripe { height: 16px; background: #000; margin-bottom: 8px; opacity: 0.05; border-radius: 2px; }
-        .legal-text { font-size: 7px; text-align: center; opacity: 0.4; letter-spacing: 0.5px; font-weight: 600; }
-
-        .modal-actions-print { padding: 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; }
-        .btn-print { height: 48px; font-weight: 900; border-radius: 4px; }
-        .modal-close-tech { 
-          color: white; background: #ef4444; width: 32px; height: 32px; 
-          display: flex; align-items: center; justify-content: center; 
-          font-weight: 900; border-radius: 0 0 0 8px; cursor: pointer;
+        /* Actions */
+        .id-actions { margin-top: 20px; }
+        .id-print-btn { 
+          height: 48px !important; border-radius: 12px !important; font-weight: 800 !important;
+          background: #2563eb !important; border: none !important;
+          box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4) !important;
         }
 
         @media print {
           body * { visibility: hidden; }
-          .id-card-visual, .id-card-visual * { visibility: visible; }
-          .id-card-visual { 
-            position: fixed; left: 50%; top: 50%; 
-            transform: translate(-50%, -50%);
-            box-shadow: none !important; border: 1px solid #000;
-          }
-          .modal-actions-print, .modal-close-tech { display: none !important; }
+          .id-frame, .id-frame * { visibility: visible; }
+          .id-frame { position: fixed; left: 0; top: 0; box-shadow: none !important; border: 1px solid #ddd; }
         }
       `}</style>
     </Modal>

@@ -5,6 +5,8 @@ import {
   AiOutlineFileText, 
   AiOutlineControl 
 } from 'react-icons/ai';
+import { FcHome,FcDataSheet,FcBusinessContact,FcPuzzle  } from "react-icons/fc";
+import { GrDocumentStore } from "react-icons/gr";
 import { FiUsers } from "react-icons/fi";
 import { s } from './DashboardNav.styles';
 
@@ -15,10 +17,10 @@ interface NavProps {
 
 export const DashboardNav: React.FC<NavProps> = ({ activeTab, onTabChange }) => {
   const items = [
-    { key: 'home', label: 'Dashboard', icon: <AiOutlineAppstore /> },
-    { key: 'laporan', label: 'Laporan', icon: <AiOutlineFileText /> },
-    { key: 'pengguna', label: 'Pengguna', icon: <FiUsers /> },
-    { key: 'settings', label: 'Settings', icon: <AiOutlineControl /> },
+    { key: 'home', label: 'Dashboard', icon: <FcHome /> },
+    { key: 'laporan', label: 'Laporan', icon: <FcDataSheet /> },
+    { key: 'pengguna', label: 'Pengguna', icon: <FcBusinessContact  /> },
+    { key: 'settings', label: 'Settings', icon: <FcPuzzle  /> },
   ];
 
   // Kunci warna Navy Utama
