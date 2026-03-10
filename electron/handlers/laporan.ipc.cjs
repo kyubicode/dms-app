@@ -265,12 +265,13 @@ ipcMain.handle('laporan:deleteDokumentasi', async (event, id_dokumentasi) => {
   }
 });
 
-  // --- EXPORT PDF (FIXED GRID TABLE SYSTEM) ---
+
+// --- EXPORT PDF (PRO INDUSTRIAL GRID SYSTEM) ---
 ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
   try {
     const config = getSettingsMap();
     
-    // 1. Inisialisasi Doc (Sinkronisasi Ukuran Kertas)
+    // 1. Inisialisasi Doc & Ukuran Kertas
     const pSize = config.pageSize || "a4";
     const doc = new jsPDF({ 
       orientation: "p", 
@@ -278,57 +279,62 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
       format: pSize 
     });
 
-    // Kalkulasi Dimensi Halaman Dinamis
     const pageWidth = pSize === "legal" ? 215.9 : 210;
     const pageHeight = pSize === "legal" ? 355.6 : 297;
     
-    // 2. Sanitasi Config & Warna
+    // 2. Sanitasi Konfigurasi & Warna
     const margin = Math.round(Number(config.marginPage) || 20);
     const cols = Math.max(1, parseInt(config.columns) || 3);
     const fixedH = Math.round(Number(config.imgHeight) || 45);
     const descSize = parseInt(config.descSize) || 8;
-    const rowGap = parseInt(config.rowGap) || 15; // Jarak baris dari UI
+    const rowGap = parseInt(config.rowGap) || 15;
     
-    const hColorClean = (config.headerColor || "1F4E78").replace(/[^0-9A-Fa-f]/g, '');
-    const fColorClean = (config.fontColor || "333333").replace(/[^0-9A-Fa-f]/g, '');
-    const hColor = `#${hColorClean.substring(0, 6)}`;
-    const fColor = `#${fColorClean.substring(0, 6)}`;
+    const hColor = `#${(config.headerColor || "1F4E78").replace(/[^0-9A-Fa-f]/g, '').substring(0, 6)}`;
+    const fColor = `#${(config.fontColor || "333333").replace(/[^0-9A-Fa-f]/g, '').substring(0, 6)}`;
 
-    // --- DRAW HEADER ---
+    // --- DRAW PRO HEADER WITH BACKGROUND ---
+    const headerBlockHeight = 40;
     const centerX = pageWidth / 2;
+
+    // Background Header Blok
+    doc.setFillColor(hColor);
+    doc.rect(0, 0, pageWidth, headerBlockHeight, 'F');
+
+    // Judul Utama (Nama Laporan)
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(parseInt(config.titleSize) || 24);
-    doc.setTextColor(fColor);
-    doc.text(String(laporan.nama_laporan).toUpperCase(), centerX, 20, { align: "center" });
+    doc.setFontSize(parseInt(config.titleSize) || 22);
+    doc.setTextColor(fColor); // Kontras Putih untuk Header
+    doc.text(String(laporan.nama_laporan).toUpperCase(), centerX, 18, { align: "center" });
 
-    doc.setFontSize(14);
-    doc.setTextColor(hColor);
-    // SINKRONISASI: Menggunakan config.judulLaporan dari UI
-    doc.text(config.judulLaporan || "LAPORAN DOKUMENTASI PEKERJAAN", centerX, 28, { align: "center" });
+    // Sub-Judul (Dari Config UI)
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(config.judulLaporan || "LAPORAN DOKUMENTASI PEKERJAAN", centerX, 26, { align: "center" });
 
-    doc.setFontSize(10);
-    doc.setTextColor("#000000");
-    doc.text(`TAHAP: ${(laporan.tahap || "-").toUpperCase()}`, centerX, 34, { align: "center" });
-    
-    const tglAwal = laporan.tgl_mulai || laporan.tgl_laporan;
-    const tglAkhir = laporan.tgl_selesai || laporan.tgl_laporan;
-    doc.text(`PERIODE: ${tglAwal} s/d ${tglAkhir}`, centerX, 39, { align: "center" });
+    // Informasi Meta (Tahap & Periode)
+    doc.setFontSize(9);
+    const tglAwal = laporan.tgl_mulai || laporan.tgl_laporan || "-";
+    const tglAkhir = laporan.tgl_selesai || laporan.tgl_laporan || "-";
+    const metaText = `TAHAP: ${(laporan.tahap || "-").toUpperCase()}  |  PERIODE: ${tglAwal} s/d ${tglAkhir}`;
+    doc.text(metaText, centerX, 33, { align: "center" });
 
     // --- GRID SETUP ---
-    let currentY = 50;
+    let currentY = headerBlockHeight + 15;
     const spacing = 5; 
     const cellWidth = (pageWidth - (margin * 2) - (spacing * (cols - 1))) / cols;
 
     for (const album of dokumentasi) {
+      // Check Page Break sebelum ganti album
       if (currentY > pageHeight - 40) { doc.addPage(); currentY = 20; }
 
-      // --- BAR DESKRIPSI ---
+      // --- ALBUM BAR / DESKRIPSI ---
       doc.setFillColor(hColor);
-      doc.rect(margin, currentY, pageWidth - (margin * 2), 8, "F");
-      doc.setTextColor("#FFFFFF");
+      doc.rect(margin, currentY, pageWidth - (margin * 2), 7, "F");
+      
+      doc.setTextColor(fColor); // Teks putih di bar deskripsi
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text(` DESKRIPSI: ${String(album.nama_dokumentasi).toUpperCase()}`, margin + 2, currentY + 5.5);
+      doc.setFontSize(9);
+      doc.text(` Deskripsi: ${String(album.nama_dokumentasi).toUpperCase()}`, margin + 2, currentY + 4.8);
       
       currentY += 12;
 
@@ -336,7 +342,8 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
         for (let i = 0; i < album.files.length; i += cols) {
           const rowFiles = album.files.slice(i, i + cols);
           
-          const requiredSpace = fixedH + 12; 
+          // Safety Check Space
+          const requiredSpace = fixedH + rowGap; 
           if (currentY + requiredSpace > pageHeight - margin) {
             doc.addPage();
             currentY = 20;
@@ -356,6 +363,7 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
                 let renderW = cellWidth;
                 let renderH = cellWidth / ratio;
 
+                // Fit Image to Box
                 if (renderH > fixedH) {
                   renderH = fixedH;
                   renderW = fixedH * ratio;
@@ -364,37 +372,236 @@ ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
                 const offsetX = (cellWidth - renderW) / 2;
                 const offsetY = (fixedH - renderH) / 2;
 
+                // Border Foto (Opsional: Light Gray)
+                doc.setDrawColor(230, 230, 230);
+                doc.rect(xPos, currentY, cellWidth, fixedH, 'S');
+
                 doc.addImage(imgData, 'JPEG', xPos + offsetX, currentY + offsetY, renderW, renderH, undefined, 'FAST');
 
+                // Label Foto
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(descSize);
-                doc.setTextColor(fColor);
-                const shortName = file.name.length > 25 ? file.name.substring(0, 22) + "..." : file.name;
+                doc.setTextColor(fColor); // Kembali ke warna font utama (gelap)
+                const shortName = file.name.length > 30 ? file.name.substring(0, 27) + "..." : file.name;
                 doc.text(shortName, xPos + (cellWidth / 2), currentY + fixedH + 5, { align: "center" });
 
-              } catch (e) { console.error("Img Error:", e); }
+              } catch (e) { console.error("Img Render Error:", e); }
             }
           });
 
-          // SINKRONISASI: Menggunakan rowGap dari UI
           currentY += fixedH + rowGap; 
         }
       }
-      currentY += 5;
+      currentY += 5; // Extra gap antar album
     }
 
-    const saveName = `PDF_${laporan.nama_laporan.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+    // --- FINALIZE ---
+    const saveName = `REPORT_${laporan.nama_laporan.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
     const savePath = path.join(app.getPath('desktop'), saveName);
     fs.writeFileSync(savePath, Buffer.from(doc.output("arraybuffer")));
     shell.openPath(savePath);
     
     return { success: true };
   } catch (err) { 
-    console.error("PDF Export Error:", err); 
+    console.error("PDF Export Critical Error:", err); 
     throw err; 
   }
 });
 
+
+// --- EXPORT WORD (INDUSTRIAL DYNAMIC SYSTEM - SYNCED WITH PDF) ---
+ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
+  try {
+    const config = getSettingsMap();
+
+    // 1. Sanitasi Warna & Konfigurasi (Ambil dari Config UI)
+    const hColor = (config.headerColor || "1F4E78").replace(/[^0-9A-Fa-f]/g, '').substring(0, 6);
+    const fColor = (config.fontColor || "333333").replace(/[^0-9A-Fa-f]/g, '').substring(0, 6);
+    
+    const cols = Math.max(1, parseInt(config.columns) || 3);
+    const imgH_base = Math.round(Number(config.imgHeight) || 45); 
+    const descSize = (parseInt(config.descSize) || 8) * 2; 
+    const titleSize = (parseInt(config.titleSize) || 24) * 2;
+    // Konversi margin mm ke Twips (1mm = 56.7 twips, tapi Word standard pakai ~20 twips per unit)
+    const marginTwips = (parseInt(config.marginPage) || 20) * 20; 
+    const rowGapTwips = (parseInt(config.rowGap) || 15) * 20;
+
+    const formatDate = (date) => date ? date : "-";
+
+    // --- 2. DYNAMIC HEADER BLOCK (Sama dengan Background PDF) ---
+    const headerTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              shading: { fill: hColor }, // Background Header mengikuti config
+              margins: { top: 400, bottom: 400, left: 200, right: 200 },
+              borders: {
+                top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
+                left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }
+              },
+              children: [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [
+                    new TextRun({ 
+                      text: String(laporan.nama_laporan).toUpperCase(), 
+                      bold: true, 
+                      size: titleSize, 
+                      color: fColor // Teks Putih agar kontras dengan background
+                    }),
+                    new TextRun({ 
+                      text: `\n${config.judulLaporan || "LAPORAN DOKUMENTASI PEKERJAAN"}`, 
+                      break: 1, 
+                      size: 28, 
+                      bold: true, 
+                      color: fColor 
+                    }),
+                    new TextRun({ 
+                      text: `\nTAHAP: ${(laporan.tahap || "-").toUpperCase()}  |  PERIODE: ${formatDate(laporan.tgl_mulai || laporan.tgl_laporan)} s/d ${formatDate(laporan.tgl_selesai || laporan.tgl_laporan)}`, 
+                      break: 1, 
+                      size: 18, 
+                      color: fColor
+                    }),
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ],
+      borders: BorderStyle.NONE
+    });
+
+    const docContent = [headerTable];
+
+    // --- 3. LOOP ALBUM DOKUMENTASI ---
+    for (const album of dokumentasi) {
+      // SEKSI BAR (Background Warna Header)
+      docContent.push(new Paragraph({
+        shading: { fill: hColor }, 
+        spacing: { before: 600, after: 200 },
+        children: [
+          new TextRun({ 
+            text: `  Deskripsi: ${String(album.nama_dokumentasi).toUpperCase()}  `, 
+            color: fColor, 
+            bold: true, 
+            size: 22 
+          })
+        ]
+      }));
+
+      const tableRows = [];
+      for (let i = 0; i < (album.files || []).length; i += cols) {
+        const rowFiles = album.files.slice(i, i + cols);
+        
+        const rowCells = rowFiles.map(f => {
+          const finalPath = getSecurePath(f.rawPath, laporan.nama_laporan, album.nama_dokumentasi);
+          
+          if (finalPath && fs.existsSync(finalPath)) {
+            try {
+              const imgBuffer = fs.readFileSync(finalPath);
+              let ratio = 1.33; 
+              try {
+                const dim = sizeOf(new Uint8Array(imgBuffer)); 
+                if (dim?.width && dim?.height) ratio = dim.width / dim.height;
+              } catch (e) {}
+
+              // Kalkulasi lebar gambar dinamis berdasarkan jumlah kolom
+              const availableWidthPt = 500 / cols; 
+              let renderW = imgH_base * ratio * 2.8; 
+              let renderH = imgH_base * 2.8;
+
+              if (renderW > availableWidthPt) {
+                renderW = availableWidthPt;
+                renderH = renderW / ratio;
+              }
+
+              return new TableCell({
+                width: { size: 100 / cols, type: WidthType.PERCENTAGE },
+                borders: BorderStyle.NONE,
+                verticalAlign: VerticalAlign.TOP,
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 100, after: 100 },
+                    children: [
+                      new ImageRun({
+                        data: imgBuffer,
+                        transformation: { width: renderW, height: renderH }
+                      })
+                    ]
+                  }),
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: rowGapTwips > 0 ? rowGapTwips : 240 },
+                    children: [
+                      new TextRun({ 
+                        text: f.name.toUpperCase(), 
+                        size: descSize, 
+                        color: fColor,
+                        font: "Arial"
+                      })
+                    ]
+                  })
+                ],
+              });
+            } catch (e) { return new TableCell({ children: [new Paragraph("ERR_IMG")] }); }
+          }
+          return new TableCell({ children: [new Paragraph("MISSING")] });
+        });
+
+        // Fill empty cells
+        while (rowCells.length < cols) {
+          rowCells.push(new TableCell({ children: [], borders: BorderStyle.NONE }));
+        }
+        tableRows.push(new TableRow({ children: rowCells }));
+      }
+
+      docContent.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: tableRows,
+        borders: BorderStyle.NONE
+      }));
+    }
+
+    // --- 4. FINALIZE WITH DYNAMIC MARGINS ---
+    const doc = new Document({
+      sections: [{
+        properties: {
+          page: {
+            margin: { 
+              top: marginTwips, 
+              bottom: marginTwips, 
+              left: marginTwips, 
+              right: marginTwips 
+            },
+          },
+        },
+        children: docContent 
+      }]
+    });
+
+    const buffer = await Packer.toBuffer(doc);
+    const saveName = `REPORT_WORD_${laporan.nama_laporan.replace(/\s+/g, '_')}_${Date.now()}.docx`;
+    const savePath = path.join(app.getPath('desktop'), saveName);
+    
+    fs.writeFileSync(savePath, buffer);
+    shell.openPath(savePath);
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Export Word Critical Error:", error);
+    throw error;
+  }
+});
+
+}
+
+module.exports = { registerLaporanHandlers };
+
+/*
 // --- EXPORT WORD ---
 ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
   try {
@@ -540,8 +747,133 @@ ipcMain.handle('laporan:exportWord', async (event, laporan, dokumentasi) => {
     throw error;
   }
 });
+//pdf
+ipcMain.handle('laporan:exportPdf', async (event, laporan, dokumentasi) => {
+  try {
+    const config = getSettingsMap();
+    
+    // 1. Inisialisasi Doc (Sinkronisasi Ukuran Kertas)
+    const pSize = config.pageSize || "a4";
+    const doc = new jsPDF({ 
+      orientation: "p", 
+      unit: "mm", 
+      format: pSize 
+    });
 
+    // Kalkulasi Dimensi Halaman Dinamis
+    const pageWidth = pSize === "legal" ? 215.9 : 210;
+    const pageHeight = pSize === "legal" ? 355.6 : 297;
+    
+    // 2. Sanitasi Config & Warna
+    const margin = Math.round(Number(config.marginPage) || 20);
+    const cols = Math.max(1, parseInt(config.columns) || 3);
+    const fixedH = Math.round(Number(config.imgHeight) || 45);
+    const descSize = parseInt(config.descSize) || 8;
+    const rowGap = parseInt(config.rowGap) || 15; // Jarak baris dari UI
+    
+    const hColorClean = (config.headerColor || "1F4E78").replace(/[^0-9A-Fa-f]/g, '');
+    const fColorClean = (config.fontColor || "333333").replace(/[^0-9A-Fa-f]/g, '');
+    const hColor = `#${hColorClean.substring(0, 6)}`;
+    const fColor = `#${fColorClean.substring(0, 6)}`;
 
-}
+    // --- DRAW HEADER ---
+    const centerX = pageWidth / 2;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(parseInt(config.titleSize) || 24);
+    doc.setTextColor(fColor);
+    doc.text(String(laporan.nama_laporan).toUpperCase(), centerX, 20, { align: "center" });
 
-module.exports = { registerLaporanHandlers };
+    doc.setFontSize(14);
+    doc.setTextColor(fColor);
+    // SINKRONISASI: Menggunakan config.judulLaporan dari UI
+    doc.text(config.judulLaporan || "LAPORAN DOKUMENTASI PEKERJAAN", centerX, 28, { align: "center" });
+
+    doc.setFontSize(10);
+    doc.setTextColor(fColor);
+    doc.text(`TAHAP: ${(laporan.tahap || "-").toUpperCase()}`, centerX, 34, { align: "center" });
+    
+    const tglAwal = laporan.tgl_mulai || laporan.tgl_laporan;
+    const tglAkhir = laporan.tgl_selesai || laporan.tgl_laporan;
+    doc.text(`PERIODE: ${tglAwal} s/d ${tglAkhir}`, centerX, 39, { align: "center" });
+
+    // --- GRID SETUP ---
+    let currentY = 50;
+    const spacing = 5; 
+    const cellWidth = (pageWidth - (margin * 2) - (spacing * (cols - 1))) / cols;
+
+    for (const album of dokumentasi) {
+      if (currentY > pageHeight - 40) { doc.addPage(); currentY = 20; }
+
+      // --- BAR DESKRIPSI ---
+      doc.setFillColor(hColor);
+      doc.rect(margin, currentY, pageWidth - (margin * 2), 8, "F");
+      doc.setTextColor(fColor);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text(` DESKRIPSI: ${String(album.nama_dokumentasi).toUpperCase()}`, margin + 2, currentY + 5.5);
+      
+      currentY += 12;
+
+      if (album.files && album.files.length > 0) {
+        for (let i = 0; i < album.files.length; i += cols) {
+          const rowFiles = album.files.slice(i, i + cols);
+          
+          const requiredSpace = fixedH + 12; 
+          if (currentY + requiredSpace > pageHeight - margin) {
+            doc.addPage();
+            currentY = 20;
+          }
+
+          rowFiles.forEach((file, index) => {
+            const xPos = margin + (index * (cellWidth + spacing));
+            const finalPath = getSecurePath(file.rawPath, laporan.nama_laporan, album.nama_dokumentasi);
+            
+            if (finalPath && fs.existsSync(finalPath)) {
+              try {
+                const imgBuffer = fs.readFileSync(finalPath);
+                const imgData = imgBuffer.toString('base64');
+                const dim = sizeOf(new Uint8Array(imgBuffer));
+                const ratio = (dim.width / dim.height) || 1.33;
+
+                let renderW = cellWidth;
+                let renderH = cellWidth / ratio;
+
+                if (renderH > fixedH) {
+                  renderH = fixedH;
+                  renderW = fixedH * ratio;
+                }
+
+                const offsetX = (cellWidth - renderW) / 2;
+                const offsetY = (fixedH - renderH) / 2;
+
+                doc.addImage(imgData, 'JPEG', xPos + offsetX, currentY + offsetY, renderW, renderH, undefined, 'FAST');
+
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(descSize);
+                doc.setTextColor(fColor);
+                const shortName = file.name.length > 25 ? file.name.substring(0, 22) + "..." : file.name;
+                doc.text(shortName, xPos + (cellWidth / 2), currentY + fixedH + 5, { align: "center" });
+
+              } catch (e) { console.error("Img Error:", e); }
+            }
+          });
+
+          // SINKRONISASI: Menggunakan rowGap dari UI
+          currentY += fixedH + rowGap; 
+        }
+      }
+      currentY += 5;
+    }
+
+    const saveName = `PDF_${laporan.nama_laporan.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+    const savePath = path.join(app.getPath('desktop'), saveName);
+    fs.writeFileSync(savePath, Buffer.from(doc.output("arraybuffer")));
+    shell.openPath(savePath);
+    
+    return { success: true };
+  } catch (err) { 
+    console.error("PDF Export Error:", err); 
+    throw err; 
+  }
+});
+*/

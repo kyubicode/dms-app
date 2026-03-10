@@ -104,9 +104,11 @@ async function initializeApp() {
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.show();
                 //dev tool
+                /*
                 if (!app.isPackaged) {
                     mainWindow.webContents.openDevTools({ mode: 'detach' });
                 }
+                */
             }
         }, 400);
 
