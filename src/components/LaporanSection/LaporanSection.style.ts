@@ -103,7 +103,19 @@ export const globalComponentStyles = `
     border-color: #007AFF !important;
     color: #007AFF !important;
   }
-
+.action-btn-industrial-danger{
+    width: 36px !important; 
+    height: 36px !important; 
+    border-radius: 50px !important; 
+    background:rgb(255, 77, 77) !important; 
+    border: 1px solid rgba(0,0,0,0.08) !important; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    color:rgb(255, 255, 255) !important;
+}
   /* Modal Sync */
   .mac-modal .ant-modal-content {
     border-radius: 24px !important;

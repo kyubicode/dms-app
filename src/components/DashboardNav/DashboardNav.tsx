@@ -1,13 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  AiOutlineAppstore, 
-  AiOutlineFileText, 
-  AiOutlineControl 
-} from 'react-icons/ai';
 import { FcHome,FcDataSheet,FcBusinessContact,FcPuzzle  } from "react-icons/fc";
-import { GrDocumentStore } from "react-icons/gr";
-import { FiUsers } from "react-icons/fi";
 import { s } from './DashboardNav.styles';
 
 interface NavProps {

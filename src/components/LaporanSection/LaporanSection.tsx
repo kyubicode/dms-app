@@ -346,7 +346,7 @@ const columns: TableProps<ILaporan>['columns'] = [
         <div style={{ width: '1px', height: '16px', background: '#e2e8f0', margin: '0 4px' }} />
         <Tooltip title="Upload"><Button className="action-btn-industrial" icon={<AiOutlineCloudUpload />} onClick={() => { setSelectedLaporan(record); setIsModalOpen(true); }} style={{ color: '#059669' }} /></Tooltip>
         <Tooltip title="Edit"><Button className="action-btn-industrial" icon={<AiOutlineEdit />} onClick={() => handleEdit(record)} style={{ color: dmsTheme.colors.accent }} /></Tooltip>
-        <Popconfirm title="Delete record?" onConfirm={async () => { if (!electronAPI) return; const result = await electronAPI.invoke('laporan:delete', record.id_laporan); if (result) { message.success('DATA_DELETED'); fetchLaporan(); } }} okText="Delete" cancelText="Cancel" okButtonProps={{ danger: true, size: 'small' }}><Button className="action-btn-industrial" icon={<AiOutlineDelete />} /></Popconfirm>
+        <Popconfirm title="Delete record?" onConfirm={async () => { if (!electronAPI) return; const result = await electronAPI.invoke('laporan:delete', record.id_laporan); if (result) { message.success('DATA_DELETED'); fetchLaporan(); } }} okText="Delete" cancelText="Cancel" okButtonProps={{ danger: true, size: 'small' }}><Button className="action-btn-industrial-danger" icon={<AiOutlineDelete />} /></Popconfirm>
       </Space>
     ) 
   }

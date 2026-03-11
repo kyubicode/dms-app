@@ -87,7 +87,7 @@ useEffect(() => {
     <ConfigProvider theme={{ 
       token: { 
         colorPrimary: '#0f172a', 
-        borderRadius: 16, 
+        borderRadius: 5, 
         fontFamily: dmsTheme.fonts.main 
       },
       components: {

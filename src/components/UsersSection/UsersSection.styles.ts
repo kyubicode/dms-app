@@ -43,6 +43,40 @@ export const globalCss = `
     to { opacity: 1; transform: scale(1) translateY(0); }
   }
 
+ /* Action Buttons Sync */
+  .action-btn-industrial { 
+    width: 36px !important; 
+    height: 36px !important; 
+    border-radius: 50px !important; 
+    background: #ffffff !important; 
+    border: 1px solid rgba(0,0,0,0.08) !important; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    color: #424245 !important;
+  }
+  
+  .action-btn-industrial:hover { 
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.06);
+    border-color: #007AFF !important;
+    color: #007AFF !important;
+  }
+.action-btn-industrial-danger{
+    width: 36px !important; 
+    height: 36px !important; 
+    border-radius: 50px !important; 
+    background:rgb(255, 77, 77) !important; 
+    border: 1px solid rgba(0,0,0,0.08) !important; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    color:rgb(255, 255, 255) !important;
+}
   /* --- FIX SEARCH & INPUT (No Overlap) --- */
   
   /* Wrapper Luar (Tempat Icon & Input) */

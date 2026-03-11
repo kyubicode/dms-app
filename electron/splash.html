@@ -3,19 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DMS Core | macOS 2026 Boot Experience</title>
+  <title>DMS Core | System Boot</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap');
 
     :root {
-      /* Palette Upgrade: Graphite & Cobalt */
-      --bg-main: #F8F9FA;
-      --graphite-950: #0F1115;
-      --graphite-700: #3A3F4B;
-      --cobalt-500: #007AFF;
-      --text-primary: #1A1D23;
-      --text-secondary: #6C757D;
-      --loader-track: rgba(0, 0, 0, 0.05);
+      --bg-dark: #0A0C10; 
+      --accent-blue: #007AFF;
+      --text-main: #F5F5F7;
+      --text-dim: #86868B;
+      --glass-stroke: rgba(255, 255, 255, 0.08);
     }
 
     body {
@@ -24,20 +21,20 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background-color: var(--bg-main);
-      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background-color: var(--bg-dark);
+      font-family: 'Inter', -apple-system, sans-serif;
       overflow: hidden;
-      color: var(--text-primary);
+      color: var(--text-main);
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Ambient Lighting: Menggunakan Electric Cobalt tipis */
+    /* Background Ambient Glow */
     body::before {
       content: '';
       position: absolute;
-      top: -10%; right: -10%;
-      width: 50%; height: 50%;
-      background: radial-gradient(circle, rgba(0, 122, 255, 0.04), transparent 70%);
+      width: 140%; height: 140%;
+      background: radial-gradient(circle at 50% 50%, rgba(0, 122, 255, 0.08) 0%, transparent 60%);
+      animation: pulseGlow 10s ease-in-out infinite;
       pointer-events: none;
     }
 
@@ -47,45 +44,47 @@
       align-items: center;
       text-align: center;
       z-index: 10;
-      /* Animasi masuk khas Sequoia */
-      animation: appleSpring 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: bootIn 1.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    /* Logo: Graphite Steel dengan Gradient halus */
+    /* Logo Styling - Industrial Graphite Gradient */
     .logo-container {
-      font-size: 56px;
-      font-weight: 600;
-      letter-spacing: -3px;
-      margin-bottom: 20px;
-      background: linear-gradient(180deg, var(--graphite-950) 0%, var(--graphite-700) 100%);
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: -2px;
+      margin-bottom: 12px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #A1A1A6 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
-      color: transparent; /* Fallback */
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
     }
 
     .app-info {
-      margin-bottom: 50px;
+      margin-bottom: 60px;
     }
 
     .app-name {
-      font-size: 22px;
-      font-weight: 500;
-      letter-spacing: -0.5px;
+      font-size: 20px;
+      font-weight: 400;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
       margin: 0;
     }
 
     .sub-name {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-top: 4px;
-      font-weight: 400;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--accent-blue);
+      margin-top: 10px;
+      opacity: 0.7;
+      letter-spacing: 1px;
     }
 
-    /* Loader: Ultra-thin Electric Cobalt */
+    /* Loader - Ultra Slim macOS Style */
     .loader-wrapper {
-      width: 220px;
+      width: 260px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -93,9 +92,9 @@
 
     .loader-track {
       width: 100%;
-      height: 3px;
-      background: var(--loader-track);
-      border-radius: 20px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
       overflow: hidden;
       position: relative;
     }
@@ -103,46 +102,52 @@
     .loader-bar {
       height: 100%;
       width: 0%;
-      background: var(--cobalt-500);
-      border-radius: 20px;
-      box-shadow: 0 0 10px rgba(0, 122, 255, 0.2);
-      transition: width 0.6s cubic-bezier(0.33, 1, 0.68, 1);
+      background: linear-gradient(90deg, #007AFF, #5AC8FA);
+      box-shadow: 0 0 12px rgba(0, 122, 255, 0.4);
+      /* Smooth Transition untuk Real-time data */
+      transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
 
     .status-text {
-      margin-top: 20px;
-      font-size: 11px;
-      font-weight: 600;
+      margin-top: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 500;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-secondary);
+      letter-spacing: 2px;
+      color: var(--text-dim);
     }
 
-    /* Footer: Industrial Minimalist */
+    /* Footer - Station Branding */
     .footer {
       position: absolute;
       bottom: 40px;
+      width: 85%;
       display: flex;
-      gap: 20px;
-      font-size: 10px;
-      color: #A1A1A6;
-      font-weight: 500;
-      letter-spacing: 0.5px;
+      justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: rgba(134, 134, 139, 0.3);
+      border-top: 1px solid var(--glass-stroke);
+      padding-top: 20px;
     }
 
-    .footer span::after {
-      content: '•';
-      margin-left: 20px;
-      opacity: 0.5;
+    .footer-section {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .footer span:last-child::after {
-      content: '';
-    }
+    .label-blue { color: var(--accent-blue); opacity: 0.6; }
 
-    @keyframes appleSpring {
-      0% { opacity: 0; transform: scale(0.95) translateY(20px); }
+    @keyframes bootIn {
+      0% { opacity: 0; transform: scale(0.97) translateY(20px); }
       100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
     }
   </style>
 </head>
@@ -152,58 +157,83 @@
     <div class="logo-container">DSENGINE</div>
     
     <div class="app-info">
-      <h1 class="app-name">DMS Management Laporan Kerja</h1>
-      <div class="sub-name">Software developer By DSEngine </div>
+      <h1 class="app-name">Work Intelligence System</h1>
+      <div class="sub-name">DMS_CORE_STABLE // BUILD_V2.4.0</div>
     </div>
     
     <div class="loader-wrapper">
       <div class="loader-track">
         <div class="loader-bar" id="progressBar"></div>
       </div>
-      <div class="status-text" id="statusLabel">Initializing Engine</div>
+      <div class="status-text" id="statusLabel">Initializing Kernel...</div>
     </div>
   </div>
 
   <div class="footer">
-    <span>DSEngine</span>
-    <span>STATION 01</span>
-    <span>ENGINEER: SIGIT S</span>
+    <div class="footer-section">
+      <span class="label-blue">TERMINAL_NODE</span>
+      <span>STATION-01 // JKT</span>
+    </div>
+    <div class="footer-section" style="text-align: center;">
+      <span class="label-blue">LEAD_ENGINEER</span>
+      <span>SIGIT S. // SYSTEMS</span>
+    </div>
+    <div class="footer-section" style="text-align: right;">
+      <span class="label-blue">ENVIRONMENT</span>
+      <span>PRODUCTION_MODE</span>
+    </div>
   </div>
 
 <script>
     const bar = document.getElementById('progressBar');
     const label = document.getElementById('statusLabel');
 
+    // Fungsi Utama Update Progress
     const updateProgress = (percent, message) => {
-        bar.style.width = `${percent}%`;
+        const safePercent = Math.min(Math.max(percent, 0), 100);
+        bar.style.width = `${safePercent}%`;
+        
         if (message) {
-            // macOS style: Title Case yang bersih
-            label.textContent = message.toLowerCase()
-                .replace(/_/g, ' ')
-                .replace(/\b\w/g, l => l.toUpperCase());
+            // Mengubah format "loading_assets" menjadi "LOADING ASSETS"
+            label.textContent = message.replace(/_/g, ' ').toUpperCase() + "...";
         }
     };
 
+    // Jalur 1: Interaksi Real-time dengan Electron
     if (window.electron && window.electron.onSplashProgress) {
         window.electron.onSplashProgress((data) => {
             if (data) {
                 updateProgress(data.percent || 0, data.message);
             }
         });
-    } else {
-        // Preview Sequence yang lebih 'smooth'
-        let progress = 0;
+    } 
+    // Jalur 2: Simulasi Preview (Jika dibuka di Browser biasa)
+    else {
+        let currentProgress = 0;
+        const simulationSteps = [
+            { p: 15, m: "Booting_Kernel" },
+            { p: 40, m: "Fetching_Neural_Data" },
+            { p: 70, m: "Syncing_Industrial_Logs" },
+            { p: 90, m: "Finalizing_Interface" },
+            { p: 100, m: "System_Ready" }
+        ];
+
+        let stepIdx = 0;
         const interval = setInterval(() => {
-            progress += Math.floor(Math.random() * 5) + 2;
-            if (progress >= 100) {
-                updateProgress(100, "Ready");
+            currentProgress += Math.random() * 1.5;
+            
+            if (stepIdx < simulationSteps.length && currentProgress >= simulationSteps[stepIdx].p) {
+                updateProgress(simulationSteps[stepIdx].p, simulationSteps[stepIdx].m);
+                stepIdx++;
+            }
+
+            if (currentProgress >= 100) {
+                updateProgress(100, "Access_Granted");
                 clearInterval(interval);
             } else {
-                const msgs = ["Securing_Gateway", "Loading_Assets", "Syncing_Industrial_Data", "Finalizing"];
-                const currentMsg = msgs[Math.floor(progress / 26)];
-                updateProgress(progress, currentMsg);
+                bar.style.width = `${currentProgress}%`;
             }
-        }, 150);
+        }, 40);
     }
 </script>
 </body>

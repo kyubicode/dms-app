@@ -20,7 +20,7 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
       theme={{
         token: {
           fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif',
-          borderRadius: 20, // Lebih bulat untuk estetika 2026
+          borderRadius: 1, // Lebih bulat untuk estetika 2026
           colorPrimary: '#007AFF', // Warna aksen klasik macOS
           colorBgContainer: '#ffffff',
         },
@@ -93,7 +93,7 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
       <style>{`
         /* Container Wrapper dengan Ambient Shadow */
         .macos-2026-table-wrapper {
-          padding: 10px;
+          padding: 0px;
           background: transparent;
         }
 
@@ -101,7 +101,7 @@ export function DataTable<T extends object>(props: DataTableProps<T>) {
           background: rgba(255, 255, 255, 0.85);
           backdrop-filter: blur(25px) saturate(180%);
           -webkit-backdrop-filter: blur(25px) saturate(180%);
-          border-radius: 24px;
+          border-radius: 10px;
           border: 1px solid rgba(255, 255, 255, 0.7);
           overflow: hidden;
           box-shadow: 

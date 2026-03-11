@@ -35,12 +35,13 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onLogoutStart 
   };
 
   const menuItems = [
-    { 
+    /*{ 
       key: 'settings', 
       label: 'Change Password', 
       icon: <AiOutlineSetting style={{ fontSize: '16px' }} /> 
     },
     { type: 'divider' as const },
+     */
     { 
       key: 'logout', 
       label: 'Sign Out', 
