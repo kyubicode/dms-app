@@ -148,4 +148,20 @@ export const titleBarGlobalStyles = `
     0%, 100% { opacity: 0.4; } 
     50% { opacity: 1; } 
   }
+    /* TAMBAHKAN INI DI titleBarGlobalStyles */
+
+/* Pastikan semua dropdown AntD (DatePicker, Select) 
+   tidak mewarisi fitur drag dari TitleBar di bawahnya 
+*/
+.ant-picker-dropdown, 
+.ant-select-dropdown, 
+.ant-picker-panel-container {
+  -webkit-app-region: no-drag !important;
+}
+
+/* Paksa Z-Index panel kalender agar jauh di atas TitleBar (1001) 
+*/
+.ant-picker-dropdown {
+  z-index: 9999 !important;
+}
 `;

@@ -370,15 +370,22 @@ const columns: TableProps<ILaporan>['columns'] = [
       <div style={localStyles.container as any}>
         <style>{globalComponentStyles}</style>
 
-        <Modal
-          open={isInputModalVisible}
-          onCancel={() => { setIsInputModalVisible(false); setEditingLaporan(null); form.resetFields(); }}
-          footer={null}
-          width={900}
-          destroyOnClose
-          centered
-          className="mac-modal" 
-        >
+    <Modal
+        open={isInputModalVisible}
+        onCancel={() => { 
+          setIsInputModalVisible(false); 
+          setEditingLaporan(null); 
+          form.resetFields(); 
+        }}
+        footer={null}
+        width={900}
+        // HAPUS destroyOnClose agar panel DatePicker stabil
+        centered
+        className="mac-modal"
+        // TAMBAHKAN INI agar fokus tidak "rebutan" dengan DatePicker
+        focusTriggerAfterClose={false}
+        maskClosable={false} 
+      >
           <FormInput 
             form={form} 
             loading={loading} 

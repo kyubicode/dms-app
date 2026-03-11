@@ -53,9 +53,9 @@ export const s = createStyles({
     marginLeft: 'auto',
     marginRight: 'auto'
   },
-breadcrumbArea: { 
-    padding: '16px 0px 8px 40px',
-  },
+  breadcrumbArea: { 
+      padding: '8px 0px 8px 40px',
+    },
   breadcrumbFlex: { 
     display: 'flex', 
     alignItems: 'center', 

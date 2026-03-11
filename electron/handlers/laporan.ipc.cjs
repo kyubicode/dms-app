@@ -12,13 +12,14 @@ const imageSize = require('image-size');
 const sizeOf = imageSize.default || imageSize;
 const { jsPDF } = require("jspdf");
 require("jspdf-autotable");
-
+const crypto = require('crypto');
 // --- UTILS ---
 
-const sanitize = (name) => {
-  if (!name) return 'unnamed';
-  return name.replace(/[\\/:*?"<>|]/g, '_').trim();
-};
+// Pastikan fungsi sanitize tersedia di file ini
+function sanitize(text) {
+  return text ? text.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'untitled';
+}
+
 
 // Fungsi untuk format tanggal Indonesia
 const formatIndo = (dateStr) => {
@@ -101,30 +102,65 @@ function registerLaporanHandlers() {
 
   ipcMain.handle('laporan:update', async (event, data) => {
     const transaction = db.transaction(() => {
-      const oldData = db.prepare('SELECT nama_laporan FROM laporan WHERE id_laporan = ?').get(data.id_laporan);
+      // 1. Ambil data lama untuk cek perubahan nama
+      const oldData = db.prepare('SELECT id_laporan, nama_laporan FROM laporan WHERE id_laporan = ?').get(data.id_laporan);
       
       if (oldData && oldData.nama_laporan !== data.nama_laporan) {
-        const oldFolderName = sanitize(oldData.nama_laporan);
-        const newFolderName = sanitize(data.nama_laporan);
+        // Sesuai sistem baru: folder menggunakan prefix "ID-"
+        const oldFolderName = `${oldData.id_laporan}-${sanitize(oldData.nama_laporan)}`;
+        const newFolderName = `${oldData.id_laporan}-${sanitize(data.nama_laporan)}`;
+        
         const oldPath = path.resolve(uploaderPath, oldFolderName);
         const newPath = path.resolve(uploaderPath, newFolderName);
 
+        // 2. Rename folder fisik jika ada
         if (fs.existsSync(oldPath)) {
           try { 
             fs.renameSync(oldPath, newPath); 
           } catch (e) { 
-            throw new Error("Folder sedang digunakan aplikasi lain."); 
+            throw new Error("Folder sedang digunakan atau terkunci oleh aplikasi lain."); 
           }
         }
 
-        db.prepare(`UPDATE table_foto SET path_foto = REPLACE(path_foto, ?, ?) WHERE id_dokumentasi IN (SELECT id_dokumentasi FROM dokumentasi WHERE id_laporan = ?)`).run(oldPath, newPath, data.id_laporan);
+        // 3. Update Path di tabel 'dokumentasi' (kolom folder_path)
+        // Karena folder_path di dokumentasi berisi path lengkap, kita harus me-replace bagian folder project-nya
+        db.prepare(`
+          UPDATE dokumentasi 
+          SET folder_path = REPLACE(folder_path, ?, ?) 
+          WHERE id_laporan = ?
+        `).run(oldPath, newPath, data.id_laporan);
+
+        // 4. Update Path di tabel 'table_foto' (kolom path_foto)
+        db.prepare(`
+          UPDATE table_foto 
+          SET path_foto = REPLACE(path_foto, ?, ?) 
+          WHERE id_dokumentasi IN (SELECT id_dokumentasi FROM dokumentasi WHERE id_laporan = ?)
+        `).run(oldPath, newPath, data.id_laporan);
       }
 
-      db.prepare(`UPDATE laporan SET nama_laporan = ?, tahap = ?, progress = ?, tgl_laporan = ?, tgl_mulai = ?, tgl_selesai = ? WHERE id_laporan = ?`)
-        .run(data.nama_laporan, data.tahap, data.progress, data.tgl_laporan, data.tgl_mulai, data.tgl_selesai, data.id_laporan);
+      // 5. Update data laporan di database
+      db.prepare(`
+        UPDATE laporan 
+        SET nama_laporan = ?, tahap = ?, progress = ?, tgl_laporan = ?, tgl_mulai = ?, tgl_selesai = ? 
+        WHERE id_laporan = ?
+      `).run(
+        data.nama_laporan, 
+        data.tahap, 
+        data.progress, 
+        data.tgl_laporan, 
+        data.tgl_mulai, 
+        data.tgl_selesai, 
+        data.id_laporan
+      );
     });
 
-    try { transaction(); return { success: true }; } catch (err) { return { success: false, message: err.message }; }
+    try { 
+      transaction(); 
+      return { success: true }; 
+    } catch (err) { 
+      console.error("Update Laporan Error:", err);
+      return { success: false, message: err.message }; 
+    }
   });
 
   ipcMain.handle('laporan:delete', async (event, id) => {
@@ -142,57 +178,70 @@ function registerLaporanHandlers() {
     return result.canceled ? [] : result.filePaths.map(p => ({ path: p, name: path.basename(p) }));
   });
 
+// --- [1] SAVE DOKUMENTASI ---
   ipcMain.handle('laporan:saveDokumentasi', async (event, { id_laporan, nama_dokumentasi, files }) => {
     try {
-      const laporan = db.prepare('SELECT nama_laporan FROM laporan WHERE id_laporan = ?').get(id_laporan);
-      const targetDir = path.join(uploaderPath, sanitize(laporan.nama_laporan), sanitize(nama_dokumentasi));
+      const laporan = db.prepare('SELECT id_laporan, nama_laporan FROM laporan WHERE id_laporan = ?').get(id_laporan);
+      if (!laporan) throw new Error("Laporan tidak ditemukan");
+
+      const folderProject = `${laporan.id_laporan}-${sanitize(laporan.nama_laporan)}`;
+      const uniqueId = crypto.randomBytes(3).toString('hex'); 
+      const folderAlbum = `${sanitize(nama_dokumentasi)}_${uniqueId}`;
+      const targetDir = path.join(uploaderPath, folderProject, folderAlbum);
+
       if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
 
-      const resDok = db.prepare('INSERT INTO dokumentasi (id_laporan, nama_dokumentasi) VALUES (?, ?)').run(id_laporan, nama_dokumentasi);
-      const id_dok = resDok.lastInsertRowid;
+      const insertDok = db.prepare('INSERT INTO dokumentasi (id_laporan, nama_dokumentasi, folder_path) VALUES (?, ?, ?)');
       const insertFoto = db.prepare('INSERT INTO table_foto (id_dokumentasi, path_foto, filename) VALUES (?, ?, ?)');
 
-      for (const file of files) {
-        const fileName = `${Date.now()}_${path.basename(file.path)}`;
-        const destPath = path.join(targetDir, fileName);
-        fs.copyFileSync(file.path, destPath);
-        insertFoto.run(id_dok, destPath, fileName);
-      }
+      db.transaction(() => {
+        const resDok = insertDok.run(id_laporan, nama_dokumentasi, targetDir);
+        const id_dok = resDok.lastInsertRowid;
+        for (const file of files) {
+          const fileName = `${Date.now()}_${crypto.randomBytes(2).toString('hex')}${path.extname(file.path)}`;
+          const destPath = path.join(targetDir, fileName);
+          fs.copyFileSync(file.path, destPath);
+          insertFoto.run(id_dok, destPath, fileName);
+        }
+      })();
       return { success: true };
-    } catch (e) { return { success: false, message: e.message }; }
+    } catch (e) {
+      console.error("Save Error:", e);
+      return { success: false, message: e.message };
+    }
   });
 
+  // --- [2] ADD FOTO ---
   ipcMain.handle('laporan:addFotoToDokumentasi', async (event, { id_dokumentasi, files }) => {
     try {
-      const info = db.prepare(`SELECT l.nama_laporan, d.nama_dokumentasi FROM dokumentasi d JOIN laporan l ON d.id_laporan = l.id_laporan WHERE d.id_dokumentasi = ?`).get(id_dokumentasi);
-      if (!info) throw new Error("Album tidak ditemukan");
-
-      const targetDir = path.join(uploaderPath, sanitize(info.nama_laporan), sanitize(info.nama_dokumentasi));
-      if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+      const info = db.prepare(`SELECT folder_path FROM dokumentasi WHERE id_dokumentasi = ?`).get(id_dokumentasi);
+      if (!info || !info.folder_path) throw new Error("Path folder tidak ditemukan");
+      if (!fs.existsSync(info.folder_path)) fs.mkdirSync(info.folder_path, { recursive: true });
 
       const insertFoto = db.prepare('INSERT INTO table_foto (id_dokumentasi, path_foto, filename) VALUES (?, ?, ?)');
-      for (const file of files) {
-        const fileName = `${Date.now()}_${path.basename(file.path)}`;
-        const destPath = path.join(targetDir, fileName);
-        fs.copyFileSync(file.path, destPath);
-        insertFoto.run(id_dokumentasi, destPath, fileName);
-      }
+      db.transaction(() => {
+        for (const file of files) {
+          const fileName = `${Date.now()}_${crypto.randomBytes(2).toString('hex')}${path.extname(file.path)}`;
+          const destPath = path.join(info.folder_path, fileName);
+          fs.copyFileSync(file.path, destPath);
+          insertFoto.run(id_dokumentasi, destPath, fileName);
+        }
+      })();
       return { success: true };
     } catch (e) { return { success: false, message: e.message }; }
   });
 
+  // --- [3] RENAME DOKUMENTASI ---
   ipcMain.handle('laporan:renameDokumentasi', async (event, { id_dokumentasi, newName }) => {
     try {
-      const album = db.prepare(`SELECT d.nama_dokumentasi, l.nama_laporan FROM dokumentasi d JOIN laporan l ON d.id_laporan = l.id_laporan WHERE d.id_dokumentasi = ?`).get(id_dokumentasi);
+      const album = db.prepare(`SELECT folder_path FROM dokumentasi WHERE id_dokumentasi = ?`).get(id_dokumentasi);
       if (!album) throw new Error("Album tidak ditemukan");
 
-      const oldPath = path.join(uploaderPath, sanitize(album.nama_laporan), sanitize(album.nama_dokumentasi));
-      const newPath = path.join(uploaderPath, sanitize(album.nama_laporan), sanitize(newName));
+      const oldPath = album.folder_path; 
+      const suffix = path.basename(oldPath).split('_').pop(); 
+      const newPath = path.join(path.dirname(oldPath), `${sanitize(newName)}_${suffix}`);
 
-      if (fs.existsSync(oldPath)) {
-        if (fs.existsSync(newPath) && oldPath !== newPath) throw new Error("Nama folder sudah ada");
-        fs.renameSync(oldPath, newPath);
-      }
+      if (fs.existsSync(oldPath) && oldPath !== newPath) fs.renameSync(oldPath, newPath);
 
       db.transaction(() => {
         const fotos = db.prepare('SELECT id_foto, path_foto FROM table_foto WHERE id_dokumentasi = ?').all(id_dokumentasi);
@@ -200,72 +249,56 @@ function registerLaporanHandlers() {
           const updatedPath = f.path_foto.replace(oldPath, newPath);
           db.prepare('UPDATE table_foto SET path_foto = ? WHERE id_foto = ?').run(updatedPath, f.id_foto);
         }
-        db.prepare('UPDATE dokumentasi SET nama_dokumentasi = ? WHERE id_dokumentasi = ?').run(newName, id_dokumentasi);
+        db.prepare('UPDATE dokumentasi SET nama_dokumentasi = ?, folder_path = ? WHERE id_dokumentasi = ?').run(newName, newPath, id_dokumentasi);
       })();
       return { success: true };
     } catch (e) { return { success: false, message: e.message }; }
   });
 
-  ipcMain.handle('laporan:getDokumentasiByLaporan', async (event, id_laporan) => {
-    const albums = db.prepare('SELECT id_dokumentasi, nama_dokumentasi FROM dokumentasi WHERE id_laporan = ?').all(id_laporan);
-    const result = [];
-    for (const album of albums) {
-      const fotosDb = db.prepare('SELECT path_foto, filename FROM table_foto WHERE id_dokumentasi = ?').all(album.id_dokumentasi);
-      const files = fotosDb.map(f => ({
-        name: f.filename,
-        rawPath: f.path_foto,
-        path: `file:///${f.path_foto.replace(/\\/g, '/')}`
-      }));
-      result.push({ id_dokumentasi: album.id_dokumentasi, nama_dokumentasi: album.nama_dokumentasi, files });
-    }
-    return result;
-  });
-
-  ipcMain.handle('laporan:deleteFoto', async (event, rawPath) => {
-    if (fs.existsSync(rawPath)) fs.unlinkSync(rawPath);
-    return db.prepare('DELETE FROM table_foto WHERE path_foto = ?').run(rawPath);
-  });
-
-ipcMain.handle('laporan:deleteDokumentasi', async (event, id_dokumentasi) => {
-  try {
-    // 1. Ambil info album & folder
-    const album = db.prepare(`
-      SELECT d.nama_dokumentasi, l.nama_laporan 
-      FROM dokumentasi d 
-      JOIN laporan l ON d.id_laporan = l.id_laporan 
-      WHERE d.id_dokumentasi = ?
-    `).get(id_dokumentasi);
-
-    if (!album) return { success: false, message: "Album tidak ditemukan" };
-
-    const folderPath = path.join(uploaderPath, sanitize(album.nama_laporan), sanitize(album.nama_dokumentasi));
-
-    // 2. Gunakan Transaction untuk Database
-    const deleteTx = db.transaction(() => {
-      // Hapus foto-fotonya dulu (Foreign Key friendly)
-      db.prepare('DELETE FROM table_foto WHERE id_dokumentasi = ?').run(id_dokumentasi);
-      // Hapus albumnya
-      db.prepare('DELETE FROM dokumentasi WHERE id_dokumentasi = ?').run(id_dokumentasi);
-    });
-
-    deleteTx(); // Jalankan hapus database
-
-    // 3. Hapus folder fisik (Try-catch terpisah agar tidak membatalkan status database)
+  // --- [4] DELETE DOKUMENTASI ---
+  ipcMain.handle('laporan:deleteDokumentasi', async (event, id_dokumentasi) => {
     try {
-      if (fs.existsSync(folderPath)) {
-        fs.rmSync(folderPath, { recursive: true, force: true });
-      }
-    } catch (fsErr) {
-      console.error("Folder fisik gagal dihapus (mungkin terkunci), tapi data DB sudah terhapus:", fsErr);
-      // Kita tetap return true karena yang terpenting datanya hilang dari UI/Tabel
-    }
+      const album = db.prepare(`SELECT folder_path FROM dokumentasi WHERE id_dokumentasi = ?`).get(id_dokumentasi);
+      if (!album) return { success: false, message: "Data tidak ditemukan" };
+      const folderPath = album.folder_path;
 
-    return { success: true };
-  } catch (e) {
-    console.error("Backend Error:", e);
-    return { success: false, message: e.message };
-  }
-});
+      db.transaction(() => {
+        db.prepare('DELETE FROM table_foto WHERE id_dokumentasi = ?').run(id_dokumentasi);
+        db.prepare('DELETE FROM dokumentasi WHERE id_dokumentasi = ?').run(id_dokumentasi);
+      })();
+
+      if (fs.existsSync(folderPath)) fs.rmSync(folderPath, { recursive: true, force: true });
+      return { success: true };
+    } catch (e) { return { success: false, message: e.message }; }
+  });
+
+  // --- [5] GET DATA ---
+  ipcMain.handle('laporan:getDokumentasiByLaporan', async (event, id_laporan) => {
+    try {
+      const albums = db.prepare('SELECT * FROM dokumentasi WHERE id_laporan = ?').all(id_laporan);
+      return albums.map(album => {
+        const fotos = db.prepare('SELECT path_foto, filename FROM table_foto WHERE id_dokumentasi = ?').all(album.id_dokumentasi);
+        return {
+          ...album,
+          files: fotos.map(f => ({
+            name: f.filename,
+            rawPath: f.path_foto,
+            path: `file:///${f.path_foto.replace(/\\/g, '/')}`
+          }))
+        };
+      });
+    } catch (e) { return []; }
+  });
+
+  // --- [6] DELETE SINGLE FOTO ---
+  ipcMain.handle('laporan:deleteFoto', async (event, rawPath) => {
+    try {
+      if (fs.existsSync(rawPath)) fs.unlinkSync(rawPath);
+      db.prepare('DELETE FROM table_foto WHERE path_foto = ?').run(rawPath);
+      return { success: true };
+    } catch (e) { return { success: false }; }
+  });
+
 
 
 // --- EXPORT PDF (PRO INDUSTRIAL GRID SYSTEM) ---
